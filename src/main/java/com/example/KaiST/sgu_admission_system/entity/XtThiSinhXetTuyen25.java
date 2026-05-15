@@ -30,9 +30,6 @@ public class XtThiSinhXetTuyen25 {
     @Column(name = "sobaodanh")
     private String soBaoDanh;
 
-    @Column(name = "ho")
-    private String ho;
-
     @Column(name = "ten")
     private String ten;
 

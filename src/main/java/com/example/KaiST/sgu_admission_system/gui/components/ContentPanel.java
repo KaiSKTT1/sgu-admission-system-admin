@@ -1,5 +1,8 @@
 package com.example.KaiST.sgu_admission_system.gui.components;
 
+import com.example.KaiST.sgu_admission_system.bus.XtThiSinhXetTuyen25Bus;
+import com.example.KaiST.sgu_admission_system.gui.controllers.CandidateController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardController;
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
 import com.example.KaiST.sgu_admission_system.gui.views.DashboardView;
 import com.example.KaiST.sgu_admission_system.gui.views.SettingsView;
@@ -17,8 +20,18 @@ public class ContentPanel extends JPanel {
         cardLayout = new CardLayout();
         setLayout(cardLayout);
 
-        add(new DashboardView(), VIEW_DASHBOARD);
-        add(new CandidateView(), VIEW_CANDIDATE);
+        DashboardView dashboardView = new DashboardView();
+        DashboardController dashboardController = new DashboardController(dashboardView, new XtThiSinhXetTuyen25Bus());
+        dashboardView.setController(dashboardController);
+        dashboardController.init();
+        add(dashboardView, VIEW_DASHBOARD);
+
+        CandidateView candidateView = new CandidateView();
+        CandidateController candidateController = new CandidateController(candidateView, new XtThiSinhXetTuyen25Bus());
+        candidateView.setController(candidateController);
+        candidateController.init();
+        add(candidateView, VIEW_CANDIDATE);
+
         add(new SettingsView(), VIEW_SETTINGS);
 
         showView(VIEW_DASHBOARD);

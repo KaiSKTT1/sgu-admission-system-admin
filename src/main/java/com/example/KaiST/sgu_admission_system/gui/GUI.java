@@ -3,6 +3,7 @@ package com.example.KaiST.sgu_admission_system.gui;
 import com.example.KaiST.sgu_admission_system.gui.components.ContentPanel;
 import com.example.KaiST.sgu_admission_system.gui.components.SidebarPanel;
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import javax.swing.JFrame;
 
 public class GUI extends JFrame {
@@ -19,7 +20,8 @@ public class GUI extends JFrame {
         add(sidebarPanel, BorderLayout.WEST);
         add(contentPanel, BorderLayout.CENTER);
 
-        setSize(1000, 600);
+        setMinimumSize(new Dimension(1200, 720));
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
     }
 }
