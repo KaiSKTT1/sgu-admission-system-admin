@@ -1,6 +1,8 @@
 spring:
   application:
     name: sgu-admission-system
+  main:
+    headless: false
   config:
     import: optional:file:.env[.properties]
   datasource:
