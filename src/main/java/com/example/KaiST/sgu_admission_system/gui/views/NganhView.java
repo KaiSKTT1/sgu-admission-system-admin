@@ -3,7 +3,7 @@ package com.example.KaiST.sgu_admission_system.gui.views;
 import com.example.KaiST.sgu_admission_system.gui.components.HorizontalButtonPanel;
 import com.example.KaiST.sgu_admission_system.gui.components.PaginationPanel;
 import com.example.KaiST.sgu_admission_system.gui.components.SearchPanel;
-import com.example.KaiST.sgu_admission_system.gui.controllers.CandidateController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -13,8 +13,8 @@ import java.awt.Window;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
-import javax.swing.BorderFactory;
 import javax.swing.AbstractCellEditor;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.ImageIcon;
@@ -29,18 +29,18 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
-public class CandidateView extends JPanel {
+public class NganhView extends JPanel {
     private static final int PAGE_SIZE = 20;
     private static final int ICON_SIZE = 18;
-    private static final int ACTION_COLUMN_INDEX = 6;
+    private static final int ACTION_COLUMN_INDEX = 7;
 
     private final SearchPanel searchPanel;
     private final DefaultTableModel tableModel;
     private final JTable table;
     private final PaginationPanel paginationPanel;
-    private CandidateController controller;
+    private NganhController controller;
 
-    public CandidateView() {
+    public NganhView() {
         setLayout(new BorderLayout(12, 12));
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
@@ -52,11 +52,12 @@ public class CandidateView extends JPanel {
 
         String[] columns = {
                 "STT",
-                "CCCD",
-                "Nơi sinh",
-                "Họ tên",
-                "Ngày sinh",
-                "Giới tính",
+                "Mã ngành",
+                "Tên ngành",
+                "Tổ hợp gốc",
+                "Chỉ tiêu",
+                "Điểm sàn",
+                "Điểm trúng tuyển",
                 "Chức năng"
         };
         tableModel = new DefaultTableModel(columns, 0) {
@@ -79,19 +80,19 @@ public class CandidateView extends JPanel {
     }
 
     private SearchPanel createSearchPanel() {
-        return new SearchPanel("Tìm thí sinh:", 22, () -> runWithController(CandidateController::onSearch));
+        return new SearchPanel("Tìm ngành:", 22, () -> runWithController(NganhController::onSearch));
     }
 
     private JPanel createActionPanel() {
         JButton importButton = new JButton("Import");
         JButton refreshButton = new JButton("Refresh");
         JButton addButton = new JButton();
-        addButton.setToolTipText("Thêm thí sinh");
+        addButton.setToolTipText("Thêm ngành");
         addButton.setIcon(tintIcon(loadIcon("/icon/plus.png", ICON_SIZE), Color.BLACK));
 
-        importButton.addActionListener(event -> runWithController(CandidateController::onImport));
-        refreshButton.addActionListener(event -> runWithController(CandidateController::onRefresh));
-        addButton.addActionListener(event -> runWithController(CandidateController::onAdd));
+        importButton.addActionListener(event -> runWithController(NganhController::onImport));
+        refreshButton.addActionListener(event -> runWithController(NganhController::onRefresh));
+        addButton.addActionListener(event -> runWithController(NganhController::onAdd));
 
         return new HorizontalButtonPanel(FlowLayout.RIGHT, 8, importButton, refreshButton, addButton);
     }
@@ -111,7 +112,7 @@ public class CandidateView extends JPanel {
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setResizable(false);
     }
 
-    public void setController(CandidateController controller) {
+    public void setController(NganhController controller) {
         this.controller = controller;
     }
 
@@ -171,7 +172,7 @@ public class CandidateView extends JPanel {
         return SwingUtilities.getWindowAncestor(this);
     }
 
-    private void runWithController(java.util.function.Consumer<CandidateController> action) {
+    private void runWithController(java.util.function.Consumer<NganhController> action) {
         if (controller != null) {
             action.accept(controller);
         }

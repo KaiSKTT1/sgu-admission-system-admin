@@ -19,6 +19,10 @@ public final class ExcelUtils {
     }
 
     public static List<Map<String, String>> readRows(File file) throws Exception {
+        return readRows(file, List.of());
+    }
+
+    public static List<Map<String, String>> readRows(File file, List<String> expectedHeaders) throws Exception {
         List<Map<String, String>> rows = new ArrayList<>();
         DataFormatter formatter = new DataFormatter();
 
@@ -29,7 +33,7 @@ public final class ExcelUtils {
                 return rows;
             }
 
-            Row headerRow = sheet.getRow(0);
+            Row headerRow = findHeaderRow(sheet, formatter, expectedHeaders);
             if (headerRow == null) {
                 return rows;
             }
@@ -43,7 +47,8 @@ public final class ExcelUtils {
                 }
             }
 
-            for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            int startRow = headerRow.getRowNum() + 1;
+            for (int rowIndex = startRow; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
                 if (row == null) {
                     continue;
@@ -70,6 +75,43 @@ public final class ExcelUtils {
         }
 
         return rows;
+    }
+
+    private static Row findHeaderRow(Sheet sheet, DataFormatter formatter, List<String> expectedHeaders) {
+        if (sheet == null) {
+            return null;
+        }
+        if (expectedHeaders == null || expectedHeaders.isEmpty()) {
+            return sheet.getRow(0);
+        }
+
+        List<String> normalizedExpected = new ArrayList<>();
+        for (String header : expectedHeaders) {
+            String normalized = normalizeHeader(header);
+            if (!normalized.isEmpty()) {
+                normalizedExpected.add(normalized);
+            }
+        }
+
+        int maxScan = Math.min(20, sheet.getLastRowNum());
+        for (int rowIndex = 0; rowIndex <= maxScan; rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null) {
+                continue;
+            }
+            int matches = 0;
+            for (int i = 0; i < row.getLastCellNum(); i++) {
+                String rawHeader = formatter.formatCellValue(row.getCell(i));
+                String normalized = normalizeHeader(rawHeader);
+                if (normalizedExpected.contains(normalized)) {
+                    matches++;
+                }
+            }
+            if (matches >= 2) {
+                return row;
+            }
+        }
+        return sheet.getRow(0);
     }
 
     public static String normalizeHeader(String header) {

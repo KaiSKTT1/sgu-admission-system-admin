@@ -1,5 +1,6 @@
 package com.example.KaiST.sgu_admission_system.config;
 
+import com.example.KaiST.sgu_admission_system.entity.XtNganh;
 import com.example.KaiST.sgu_admission_system.entity.XtThiSinhXetTuyen25;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,6 +48,7 @@ public final class HibernateUtil {
         configuration.setProperty("hibernate.current_session_context_class", "thread");
 
         configuration.addAnnotatedClass(XtThiSinhXetTuyen25.class);
+        configuration.addAnnotatedClass(XtNganh.class);
 
         return configuration.buildSessionFactory();
     }
