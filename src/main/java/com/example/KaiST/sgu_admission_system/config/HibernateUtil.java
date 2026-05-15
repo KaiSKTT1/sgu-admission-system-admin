@@ -2,6 +2,7 @@ package com.example.KaiST.sgu_admission_system.config;
 
 import com.example.KaiST.sgu_admission_system.entity.XtNganh;
 import com.example.KaiST.sgu_admission_system.entity.XtThiSinhXetTuyen25;
+import com.example.KaiST.sgu_admission_system.entity.XtToHopMonThi;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,9 +31,9 @@ public final class HibernateUtil {
     private static SessionFactory buildSessionFactory() {
         Configuration configuration = new Configuration();
 
-        String dbUrl = getEnv("DB_URL", "jdbc:mysql://localhost:3306/sgu_admission_system");
-        String dbUsername = getEnv("DB_USERNAME", "root");
-        String dbPassword = getEnv("DB_PASSWORD", "");
+        String dbUrl = getEnv("DB_URL", "jdbc:mysql://localhost:3306/sgu-admission");
+        String dbUsername = getEnv("DB_USERNAME", "hbstudent");
+        String dbPassword = getEnv("DB_PASSWORD", "hbstudent");
         String dbDriver = getEnv("DB_DRIVER", "com.mysql.cj.jdbc.Driver");
         String dbDialect = getEnv("DB_DIALECT", "org.hibernate.dialect.MySQLDialect");
         String dbDdlAuto = getEnv("DB_DDL_AUTO", "update");
@@ -49,6 +50,7 @@ public final class HibernateUtil {
 
         configuration.addAnnotatedClass(XtThiSinhXetTuyen25.class);
         configuration.addAnnotatedClass(XtNganh.class);
+        configuration.addAnnotatedClass(XtToHopMonThi.class);
 
         return configuration.buildSessionFactory();
     }

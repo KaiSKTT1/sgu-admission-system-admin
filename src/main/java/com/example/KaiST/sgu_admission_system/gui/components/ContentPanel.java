@@ -2,13 +2,16 @@ package com.example.KaiST.sgu_admission_system.gui.components;
 
 import com.example.KaiST.sgu_admission_system.bus.XtNganhBus;
 import com.example.KaiST.sgu_admission_system.bus.XtThiSinhXetTuyen25Bus;
+import com.example.KaiST.sgu_admission_system.bus.XtToHopMonThiBus;
 import com.example.KaiST.sgu_admission_system.gui.controllers.CandidateController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.ToHopMonThiController;
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
 import com.example.KaiST.sgu_admission_system.gui.views.DashboardView;
 import com.example.KaiST.sgu_admission_system.gui.views.NganhView;
 import com.example.KaiST.sgu_admission_system.gui.views.SettingsView;
+import com.example.KaiST.sgu_admission_system.gui.views.ToHopMonThiView;
 import java.awt.CardLayout;
 import javax.swing.JPanel;
 
@@ -16,6 +19,7 @@ public class ContentPanel extends JPanel {
     public static final String VIEW_DASHBOARD = "dashboard";
     public static final String VIEW_CANDIDATE = "candidate";
     public static final String VIEW_NGANH = "nganh";
+    public static final String VIEW_TOHOP = "tohop";
     public static final String VIEW_SETTINGS = "settings";
 
     private final CardLayout cardLayout;
@@ -41,6 +45,12 @@ public class ContentPanel extends JPanel {
         nganhView.setController(nganhController);
         nganhController.init();
         add(nganhView, VIEW_NGANH);
+
+        ToHopMonThiView toHopView = new ToHopMonThiView();
+        ToHopMonThiController toHopController = new ToHopMonThiController(toHopView, new XtToHopMonThiBus());
+        toHopView.setController(toHopController);
+        toHopController.init();
+        add(toHopView, VIEW_TOHOP);
 
         add(new SettingsView(), VIEW_SETTINGS);
 
