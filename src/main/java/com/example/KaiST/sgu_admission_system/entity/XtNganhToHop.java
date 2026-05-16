@@ -51,7 +51,7 @@ public class XtNganhToHop {
     @Column(name = "tb_keys")
     private String tbKeys;
 
-    @Column(name = "N1")
+    @Column(name = "N1_FLAG")
     private Boolean n1;
 
     @Column(name = "TO")
