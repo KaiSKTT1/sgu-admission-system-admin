@@ -3,14 +3,17 @@ package com.example.KaiST.sgu_admission_system.gui.components;
 import com.example.KaiST.sgu_admission_system.bus.XtNganhBus;
 import com.example.KaiST.sgu_admission_system.bus.XtThiSinhXetTuyen25Bus;
 import com.example.KaiST.sgu_admission_system.bus.XtDiemThiXetTuyenBus;
+import com.example.KaiST.sgu_admission_system.bus.XtDiemCongXetTuyenBus;
 import com.example.KaiST.sgu_admission_system.bus.XtToHopMonThiBus;
 import com.example.KaiST.sgu_admission_system.gui.controllers.CandidateController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DiemThiXetTuyenController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.DiemCongXetTuyenController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.ToHopMonThiController;
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemThiXetTuyenView;
+import com.example.KaiST.sgu_admission_system.gui.views.DiemCongXetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.views.DashboardView;
 import com.example.KaiST.sgu_admission_system.gui.views.NganhView;
 import com.example.KaiST.sgu_admission_system.gui.views.SettingsView;
@@ -22,6 +25,7 @@ public class ContentPanel extends JPanel {
     public static final String VIEW_DASHBOARD = "dashboard";
     public static final String VIEW_CANDIDATE = "candidate";
     public static final String VIEW_DIEMTHI = "diemthi";
+    public static final String VIEW_DIEMCONG = "diemcong";
     public static final String VIEW_NGANH = "nganh";
     public static final String VIEW_TOHOP = "tohop";
     public static final String VIEW_SETTINGS = "settings";
@@ -51,6 +55,14 @@ public class ContentPanel extends JPanel {
         diemThiView.setController(diemThiController);
         diemThiController.init();
         add(diemThiView, VIEW_DIEMTHI);
+
+        DiemCongXetTuyenView diemCongView = new DiemCongXetTuyenView();
+        DiemCongXetTuyenController diemCongController = new DiemCongXetTuyenController(
+                diemCongView,
+                new XtDiemCongXetTuyenBus());
+        diemCongView.setController(diemCongController);
+        diemCongController.init();
+        add(diemCongView, VIEW_DIEMCONG);
 
         NganhView nganhView = new NganhView();
         NganhController nganhController = new NganhController(nganhView, new XtNganhBus());
