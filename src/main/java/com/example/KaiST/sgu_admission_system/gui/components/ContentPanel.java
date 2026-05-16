@@ -47,7 +47,10 @@ public class ContentPanel extends JPanel {
         add(dashboardView, VIEW_DASHBOARD);
 
         CandidateView candidateView = new CandidateView();
-        CandidateController candidateController = new CandidateController(candidateView, new XtThiSinhXetTuyen25Bus());
+        CandidateController candidateController = new CandidateController(
+            candidateView,
+            new XtThiSinhXetTuyen25Bus(),
+            new XtDiemThiXetTuyenBus());
         candidateView.setController(candidateController);
         candidateController.init();
         add(candidateView, VIEW_CANDIDATE);
@@ -70,8 +73,8 @@ public class ContentPanel extends JPanel {
 
         BangQuyDoiView quyDoiView = new BangQuyDoiView();
         BangQuyDoiController quyDoiController = new BangQuyDoiController(
-            quyDoiView,
-            new XtBangQuyDoiBus());
+                quyDoiView,
+                new XtBangQuyDoiBus());
         quyDoiView.setController(quyDoiController);
         quyDoiController.init();
         add(quyDoiView, VIEW_QUYDOI);

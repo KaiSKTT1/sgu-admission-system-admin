@@ -100,14 +100,15 @@ public class CandidateView extends JPanel {
         ImageIcon eyeIcon = tintIcon(loadIcon("/icon/eye.png", ICON_SIZE, false), Color.BLACK);
         ImageIcon editIcon = tintIcon(loadIcon("/icon/pencil.png", ICON_SIZE, false), Color.BLACK);
         ImageIcon deleteIcon = tintIcon(loadIcon("/icon/circle-x.png", ICON_SIZE, false), Color.BLACK);
+        ImageIcon scoreIcon = tintIcon(loadIcon("/icon/eye.png", ICON_SIZE, false), Color.BLACK);
 
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setCellRenderer(
-                new ActionCellRenderer(eyeIcon, editIcon, deleteIcon));
+            new ActionCellRenderer(eyeIcon, editIcon, deleteIcon, scoreIcon));
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setCellEditor(
-                new ActionCellEditor(eyeIcon, editIcon, deleteIcon));
-        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMaxWidth(140);
-        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMinWidth(140);
-        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setPreferredWidth(140);
+            new ActionCellEditor(eyeIcon, editIcon, deleteIcon, scoreIcon));
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMaxWidth(180);
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMinWidth(180);
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setPreferredWidth(180);
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setResizable(false);
     }
 
@@ -233,18 +234,21 @@ public class CandidateView extends JPanel {
         private final JButton viewButton;
         private final JButton editButton;
         private final JButton deleteButton;
+        private final JButton scoreButton;
 
-        private ActionCellRenderer(ImageIcon viewIcon, ImageIcon editIcon, ImageIcon deleteIcon) {
+        private ActionCellRenderer(ImageIcon viewIcon, ImageIcon editIcon, ImageIcon deleteIcon, ImageIcon scoreIcon) {
             setLayout(new FlowLayout(FlowLayout.CENTER, 6, 0));
             setOpaque(true);
 
             viewButton = createIconButton(viewIcon, "Xem chi tiết", "Xem");
             editButton = createIconButton(editIcon, "Sửa", "Sửa");
             deleteButton = createIconButton(deleteIcon, "Xóa", "X");
+            scoreButton = createIconButton(scoreIcon, "Xem điểm", "Điểm");
 
             add(viewButton);
             add(editButton);
             add(deleteButton);
+            add(scoreButton);
         }
 
         @Override
@@ -262,21 +266,24 @@ public class CandidateView extends JPanel {
     private final class ActionCellEditor extends AbstractCellEditor implements TableCellEditor {
         private final JPanel panel;
 
-        private ActionCellEditor(ImageIcon viewIcon, ImageIcon editIcon, ImageIcon deleteIcon) {
+        private ActionCellEditor(ImageIcon viewIcon, ImageIcon editIcon, ImageIcon deleteIcon, ImageIcon scoreIcon) {
             panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
             panel.setOpaque(true);
 
             JButton viewButton = createIconButton(viewIcon, "Xem chi tiết", "Xem");
             JButton editButton = createIconButton(editIcon, "Sửa", "Sửa");
             JButton deleteButton = createIconButton(deleteIcon, "Xóa", "X");
+            JButton scoreButton = createIconButton(scoreIcon, "Xem điểm", "Điểm");
 
             viewButton.addActionListener(event -> handleActionRow(ActionType.VIEW));
             editButton.addActionListener(event -> handleActionRow(ActionType.EDIT));
             deleteButton.addActionListener(event -> handleActionRow(ActionType.DELETE));
+            scoreButton.addActionListener(event -> handleActionRow(ActionType.SCORE));
 
             panel.add(viewButton);
             panel.add(editButton);
             panel.add(deleteButton);
+            panel.add(scoreButton);
         }
 
         @Override
@@ -305,6 +312,7 @@ public class CandidateView extends JPanel {
                         case VIEW -> ctrl.onViewRow(row);
                         case EDIT -> ctrl.onEditRow(row);
                         case DELETE -> ctrl.onDeleteRow(row);
+                        case SCORE -> ctrl.onScoreRow(row);
                     }
                 });
             }
@@ -331,6 +339,7 @@ public class CandidateView extends JPanel {
     private enum ActionType {
         VIEW,
         EDIT,
-        DELETE
+        DELETE,
+        SCORE
     }
 }

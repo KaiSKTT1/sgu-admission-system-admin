@@ -19,6 +19,10 @@ public class XtDiemThiXetTuyenBus {
         return dao.findAll();
     }
 
+    public List<XtDiemThiXetTuyen> findByCccdOrSbd(String cccd, String soBaoDanh) {
+        return dao.findByCccdOrSbd(cccd, soBaoDanh);
+    }
+
     public XtDiemThiXetTuyen save(XtDiemThiXetTuyen entity) {
         return dao.save(entity);
     }

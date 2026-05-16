@@ -1,7 +1,10 @@
 package com.example.KaiST.sgu_admission_system.gui.controllers;
 
+import com.example.KaiST.sgu_admission_system.bus.XtDiemThiXetTuyenBus;
 import com.example.KaiST.sgu_admission_system.bus.XtThiSinhXetTuyen25Bus;
+import com.example.KaiST.sgu_admission_system.entity.XtDiemThiXetTuyen;
 import com.example.KaiST.sgu_admission_system.entity.XtThiSinhXetTuyen25;
+import com.example.KaiST.sgu_admission_system.gui.dialogs.ThiSinhScoreDialog;
 import com.example.KaiST.sgu_admission_system.gui.dialogs.ThiSinhXetTuyenDialog;
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
 import com.example.KaiST.sgu_admission_system.utils.ExcelUtils;
@@ -15,13 +18,15 @@ import java.util.function.Consumer;
 public class CandidateController {
     private final CandidateView view;
     private final XtThiSinhXetTuyen25Bus bus;
+    private final XtDiemThiXetTuyenBus diemThiBus;
     private List<XtThiSinhXetTuyen25> allCandidates = new ArrayList<>();
     private List<XtThiSinhXetTuyen25> filteredCandidates = new ArrayList<>();
     private int currentPage = 1;
 
-    public CandidateController(CandidateView view, XtThiSinhXetTuyen25Bus bus) {
+    public CandidateController(CandidateView view, XtThiSinhXetTuyen25Bus bus, XtDiemThiXetTuyenBus diemThiBus) {
         this.view = view;
         this.bus = bus;
+        this.diemThiBus = diemThiBus;
     }
 
     public void init() {
@@ -121,6 +126,20 @@ public class CandidateController {
             bus.deleteById(candidate.getIdThiSinh());
             onRefresh();
         }
+    }
+
+    public void onScoreRow(int row) {
+        XtThiSinhXetTuyen25 candidate = getCandidateAtRow(row);
+        if (candidate == null) {
+            view.showInfo("Vui lòng chọn thí sinh cần xem điểm.");
+            return;
+        }
+
+        List<XtDiemThiXetTuyen> scores = diemThiBus.findByCccdOrSbd(
+                candidate.getCccd(),
+                candidate.getSoBaoDanh());
+        ThiSinhScoreDialog dialog = new ThiSinhScoreDialog(view.getWindow(), candidate, scores);
+        dialog.setVisible(true);
     }
 
     public void onImport() {

@@ -21,6 +21,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.ImageIcon;
+import java.awt.GridLayout;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
@@ -29,6 +30,9 @@ public class DashboardView extends JPanel {
 
     private final DefaultTableModel tableModel;
     private final JTable table;
+    private final JLabel totalLabel;
+    private final JLabel doiTuongLabel;
+    private final JLabel khuVucLabel;
     private DashboardController controller;
 
     public DashboardView() {
@@ -38,7 +42,20 @@ public class DashboardView extends JPanel {
         JPanel headerPanel = new JPanel(new BorderLayout(8, 8));
         headerPanel.add(new JLabel("Thí sinh nổi bật"), BorderLayout.WEST);
         headerPanel.add(createActionPanel(), BorderLayout.EAST);
-        add(headerPanel, BorderLayout.NORTH);
+
+        totalLabel = new JLabel("0", JLabel.LEFT);
+        doiTuongLabel = new JLabel("Chưa có", JLabel.LEFT);
+        khuVucLabel = new JLabel("Chưa có", JLabel.LEFT);
+
+        JPanel statsPanel = new JPanel(new GridLayout(1, 3, 12, 12));
+        statsPanel.add(createStatCard("Tổng thí sinh", totalLabel));
+        statsPanel.add(createStatCard("Theo đối tượng", doiTuongLabel));
+        statsPanel.add(createStatCard("Theo khu vực", khuVucLabel));
+
+        JPanel topPanel = new JPanel(new BorderLayout(0, 8));
+        topPanel.add(headerPanel, BorderLayout.NORTH);
+        topPanel.add(statsPanel, BorderLayout.SOUTH);
+        add(topPanel, BorderLayout.NORTH);
 
         String[] columns = {
                 "CCCD",
@@ -120,6 +137,12 @@ public class DashboardView extends JPanel {
         }
     }
 
+    public void setStats(int total, String doiTuongSummary, String khuVucSummary) {
+        totalLabel.setText(String.valueOf(total));
+        doiTuongLabel.setText(asMultiline(doiTuongSummary));
+        khuVucLabel.setText(asMultiline(khuVucSummary));
+    }
+
     public void showInfo(String message) {
         javax.swing.JOptionPane.showMessageDialog(this, message, "Thông báo",
                 javax.swing.JOptionPane.INFORMATION_MESSAGE);
@@ -182,6 +205,25 @@ public class DashboardView extends JPanel {
             }
         }
         return new ImageIcon(image);
+    }
+
+    private JPanel createStatCard(String title, JLabel valueLabel) {
+        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setForeground(Color.DARK_GRAY);
+        panel.add(titleLabel, BorderLayout.NORTH);
+        panel.add(valueLabel, BorderLayout.CENTER);
+        panel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220)),
+                new EmptyBorder(8, 8, 8, 8)));
+        return panel;
+    }
+
+    private String asMultiline(String text) {
+        if (text == null || text.isBlank()) {
+            return "Chưa có";
+        }
+        return "<html>" + text.replace("\n", "<br>") + "</html>";
     }
 
     private final class IconButtonRenderer extends JButton implements TableCellRenderer {

@@ -13,6 +13,37 @@ public class XtDiemThiXetTuyenDao {
         }
     }
 
+    public List<XtDiemThiXetTuyen> findByCccdOrSbd(String cccd, String soBaoDanh) {
+        boolean hasCccd = cccd != null && !cccd.isBlank();
+        boolean hasSbd = soBaoDanh != null && !soBaoDanh.isBlank();
+        if (!hasCccd && !hasSbd) {
+            return java.util.Collections.emptyList();
+        }
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            if (hasCccd && hasSbd) {
+                return session.createQuery(
+                        "from XtDiemThiXetTuyen where cccd = :cccd or soBaoDanh = :sbd",
+                        XtDiemThiXetTuyen.class)
+                        .setParameter("cccd", cccd)
+                        .setParameter("sbd", soBaoDanh)
+                        .list();
+            }
+            if (hasCccd) {
+                return session.createQuery(
+                        "from XtDiemThiXetTuyen where cccd = :cccd",
+                        XtDiemThiXetTuyen.class)
+                        .setParameter("cccd", cccd)
+                        .list();
+            }
+            return session.createQuery(
+                    "from XtDiemThiXetTuyen where soBaoDanh = :sbd",
+                    XtDiemThiXetTuyen.class)
+                    .setParameter("sbd", soBaoDanh)
+                    .list();
+        }
+    }
+
     public XtDiemThiXetTuyen save(XtDiemThiXetTuyen entity) {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
