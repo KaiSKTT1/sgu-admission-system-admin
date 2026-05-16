@@ -20,6 +20,7 @@ public class SidebarPanel extends JPanel {
         add(createNavButton("Thí sinh", ContentPanel.VIEW_CANDIDATE));
         add(createNavButton("Điểm thi", ContentPanel.VIEW_DIEMTHI));
         add(createNavButton("Điểm cộng", ContentPanel.VIEW_DIEMCONG));
+        add(createNavButton("Bảng quy đổi", ContentPanel.VIEW_QUYDOI));
         add(createNavButton("Ngành", ContentPanel.VIEW_NGANH));
         add(createNavButton("Tổ hợp môn thi", ContentPanel.VIEW_TOHOP));
         add(createNavButton("Cài đặt", ContentPanel.VIEW_SETTINGS));

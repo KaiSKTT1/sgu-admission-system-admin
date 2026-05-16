@@ -4,16 +4,19 @@ import com.example.KaiST.sgu_admission_system.bus.XtNganhBus;
 import com.example.KaiST.sgu_admission_system.bus.XtThiSinhXetTuyen25Bus;
 import com.example.KaiST.sgu_admission_system.bus.XtDiemThiXetTuyenBus;
 import com.example.KaiST.sgu_admission_system.bus.XtDiemCongXetTuyenBus;
+import com.example.KaiST.sgu_admission_system.bus.XtBangQuyDoiBus;
 import com.example.KaiST.sgu_admission_system.bus.XtToHopMonThiBus;
 import com.example.KaiST.sgu_admission_system.gui.controllers.CandidateController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DiemThiXetTuyenController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DiemCongXetTuyenController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.BangQuyDoiController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.ToHopMonThiController;
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemThiXetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemCongXetTuyenView;
+import com.example.KaiST.sgu_admission_system.gui.views.BangQuyDoiView;
 import com.example.KaiST.sgu_admission_system.gui.views.DashboardView;
 import com.example.KaiST.sgu_admission_system.gui.views.NganhView;
 import com.example.KaiST.sgu_admission_system.gui.views.SettingsView;
@@ -26,6 +29,7 @@ public class ContentPanel extends JPanel {
     public static final String VIEW_CANDIDATE = "candidate";
     public static final String VIEW_DIEMTHI = "diemthi";
     public static final String VIEW_DIEMCONG = "diemcong";
+    public static final String VIEW_QUYDOI = "quydoi";
     public static final String VIEW_NGANH = "nganh";
     public static final String VIEW_TOHOP = "tohop";
     public static final String VIEW_SETTINGS = "settings";
@@ -63,6 +67,14 @@ public class ContentPanel extends JPanel {
         diemCongView.setController(diemCongController);
         diemCongController.init();
         add(diemCongView, VIEW_DIEMCONG);
+
+        BangQuyDoiView quyDoiView = new BangQuyDoiView();
+        BangQuyDoiController quyDoiController = new BangQuyDoiController(
+            quyDoiView,
+            new XtBangQuyDoiBus());
+        quyDoiView.setController(quyDoiController);
+        quyDoiController.init();
+        add(quyDoiView, VIEW_QUYDOI);
 
         NganhView nganhView = new NganhView();
         NganhController nganhController = new NganhController(nganhView, new XtNganhBus());
