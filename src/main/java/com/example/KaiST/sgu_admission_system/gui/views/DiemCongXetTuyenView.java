@@ -31,7 +31,7 @@ import javax.swing.table.TableCellRenderer;
 public class DiemCongXetTuyenView extends JPanel {
     private static final int PAGE_SIZE = 20;
     private static final int ICON_SIZE = 18;
-    private static final int ACTION_COLUMN_INDEX = 6;
+    private static final int ACTION_COLUMN_INDEX = 7;
 
     private final SearchPanel searchPanel;
     private final DefaultTableModel tableModel;
@@ -52,10 +52,11 @@ public class DiemCongXetTuyenView extends JPanel {
         String[] columns = {
                 "STT",
                 "CCCD",
-                "Mã ngành",
-                "Mã tổ hợp",
-                "Phương thức",
-                "Điểm tổng",
+                "Mã nguyện vọng",
+                "Tổ hợp môn",
+                "Điểm cộng tiếng Anh",
+                "Điểm cộng HSG",
+                "Tổng điểm cộng",
                 "Chức năng"
         };
         tableModel = new DefaultTableModel(columns, 0) {
@@ -78,7 +79,7 @@ public class DiemCongXetTuyenView extends JPanel {
     }
 
     private SearchPanel createSearchPanel() {
-        return new SearchPanel("Tìm điểm cộng:", 22, () -> runWithController(DiemCongXetTuyenController::onSearch));
+        return new SearchPanel("Tìm theo CCCD:", 22, () -> runWithController(DiemCongXetTuyenController::onSearch));
     }
 
     private JPanel createActionPanel() {

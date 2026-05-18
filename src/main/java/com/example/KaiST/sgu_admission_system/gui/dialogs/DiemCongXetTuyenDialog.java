@@ -71,6 +71,11 @@ public class DiemCongXetTuyenDialog extends JDialog {
         rowIndex = addField(panel, constraints, rowIndex, "Ghi chú", "ghichu", row.getGhiChu());
         addField(panel, constraints, rowIndex, "DC keys", "dc_keys", row.getDcKeys());
 
+        JTextField diemTongField = fields.get("diemtong");
+        if (diemTongField != null) {
+            diemTongField.setEditable(false);
+        }
+
         if (mode == Mode.VIEW) {
             for (JTextField field : fields.values()) {
                 field.setEditable(false);
@@ -116,13 +121,28 @@ public class DiemCongXetTuyenDialog extends JDialog {
         row.setMaNganh(fields.get("manganh").getText().trim());
         row.setMaToHop(fields.get("matohop").getText().trim());
         row.setPhuongThuc(fields.get("phuongthuc").getText().trim());
-        row.setDiemCc(parseBigDecimal(fields.get("diemcc").getText().trim()));
-        row.setDiemUtxt(parseBigDecimal(fields.get("diemutxt").getText().trim()));
-        row.setDiemTong(parseBigDecimal(fields.get("diemtong").getText().trim()));
+        java.math.BigDecimal diemCc = parseBigDecimal(fields.get("diemcc").getText().trim());
+        java.math.BigDecimal diemUtxt = parseBigDecimal(fields.get("diemutxt").getText().trim());
+        row.setDiemCc(diemCc);
+        row.setDiemUtxt(diemUtxt);
+        row.setDiemTong(sum(diemCc, diemUtxt));
         row.setGhiChu(fields.get("ghichu").getText().trim());
         row.setDcKeys(fields.get("dc_keys").getText().trim());
         saved = true;
         dispose();
+    }
+
+    private java.math.BigDecimal sum(java.math.BigDecimal left, java.math.BigDecimal right) {
+        if (left == null && right == null) {
+            return null;
+        }
+        if (left == null) {
+            return right;
+        }
+        if (right == null) {
+            return left;
+        }
+        return left.add(right);
     }
 
     private XtDiemCongXetTuyen copyRow(XtDiemCongXetTuyen source) {

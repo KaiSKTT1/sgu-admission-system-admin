@@ -1,6 +1,7 @@
 package com.example.KaiST.sgu_admission_system.gui.controllers;
 
 import com.example.KaiST.sgu_admission_system.bus.XtDiemCongXetTuyenBus;
+import com.example.KaiST.sgu_admission_system.dto.DiemCongXetTuyenRow;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemCongXetTuyen;
 import com.example.KaiST.sgu_admission_system.gui.dialogs.DiemCongXetTuyenDialog;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemCongXetTuyenView;
@@ -15,8 +16,8 @@ import java.util.Map;
 public class DiemCongXetTuyenController {
     private final DiemCongXetTuyenView view;
     private final XtDiemCongXetTuyenBus bus;
-    private List<XtDiemCongXetTuyen> allRows = new ArrayList<>();
-    private List<XtDiemCongXetTuyen> filteredRows = new ArrayList<>();
+    private List<DiemCongXetTuyenRow> allRows = new ArrayList<>();
+    private List<DiemCongXetTuyenRow> filteredRows = new ArrayList<>();
     private int currentPage = 1;
 
     public DiemCongXetTuyenController(DiemCongXetTuyenView view, XtDiemCongXetTuyenBus bus) {
@@ -29,7 +30,7 @@ public class DiemCongXetTuyenController {
     }
 
     public void onRefresh() {
-        allRows = bus.findAll();
+        allRows = bus.findAllRows();
         onSearch();
     }
 
@@ -39,7 +40,7 @@ public class DiemCongXetTuyenController {
             filteredRows = new ArrayList<>(allRows);
         } else {
             filteredRows = new ArrayList<>();
-            for (XtDiemCongXetTuyen row : allRows) {
+            for (DiemCongXetTuyenRow row : allRows) {
                 if (containsKeyword(row, keyword)) {
                     filteredRows.add(row);
                 }
@@ -68,9 +69,14 @@ public class DiemCongXetTuyenController {
     }
 
     public void onViewRow(int row) {
-        XtDiemCongXetTuyen record = getRowAt(row);
-        if (record == null) {
+        DiemCongXetTuyenRow rowData = getRowAt(row);
+        if (rowData == null) {
             view.showInfo("Vui lòng chọn bản ghi cần xem.");
+            return;
+        }
+        XtDiemCongXetTuyen record = bus.findById(rowData.getIdDiemCong());
+        if (record == null) {
+            view.showInfo("Không tìm thấy bản ghi cần xem.");
             return;
         }
         DiemCongXetTuyenDialog dialog = new DiemCongXetTuyenDialog(
@@ -82,9 +88,14 @@ public class DiemCongXetTuyenController {
     }
 
     public void onEditRow(int row) {
-        XtDiemCongXetTuyen record = getRowAt(row);
-        if (record == null) {
+        DiemCongXetTuyenRow rowData = getRowAt(row);
+        if (rowData == null) {
             view.showInfo("Vui lòng chọn bản ghi cần sửa.");
+            return;
+        }
+        XtDiemCongXetTuyen record = bus.findById(rowData.getIdDiemCong());
+        if (record == null) {
+            view.showInfo("Không tìm thấy bản ghi cần sửa.");
             return;
         }
         DiemCongXetTuyenDialog dialog = new DiemCongXetTuyenDialog(
@@ -100,13 +111,18 @@ public class DiemCongXetTuyenController {
     }
 
     public void onDeleteRow(int row) {
-        XtDiemCongXetTuyen record = getRowAt(row);
-        if (record == null) {
+        DiemCongXetTuyenRow rowData = getRowAt(row);
+        if (rowData == null) {
             view.showInfo("Vui lòng chọn bản ghi cần xóa.");
             return;
         }
+        Integer id = rowData.getIdDiemCong();
+        if (id == null) {
+            view.showInfo("Không tìm thấy bản ghi cần xóa.");
+            return;
+        }
         if (view.confirm("Bạn có chắc chắn muốn xóa bản ghi này?")) {
-            bus.deleteById(record.getIdDiemCong());
+            bus.deleteById(id);
             onRefresh();
         }
     }
@@ -175,14 +191,15 @@ public class DiemCongXetTuyenController {
 
         List<Object[]> rows = new ArrayList<>();
         for (int i = start; i < end; i++) {
-            XtDiemCongXetTuyen record = filteredRows.get(i);
+            DiemCongXetTuyenRow record = filteredRows.get(i);
             int stt = i + 1;
             rows.add(new Object[] {
                     stt,
                     safeText(record.getTsCccd()),
-                    safeText(record.getMaNganh()),
-                    safeText(record.getMaToHop()),
-                    safeText(record.getPhuongThuc()),
+                    safeText(resolveNguyenVong(record)),
+                    safeText(resolveToHop(record)),
+                    safeText(record.getDiemCc()),
+                    safeText(record.getDiemUtxt()),
                     safeText(record.getDiemTong()),
                     ""
             });
@@ -192,7 +209,7 @@ public class DiemCongXetTuyenController {
         view.updatePagination(currentPage, totalPages);
     }
 
-    private XtDiemCongXetTuyen getRowAt(int row) {
+    private DiemCongXetTuyenRow getRowAt(int row) {
         if (row < 0) {
             return null;
         }
@@ -204,10 +221,8 @@ public class DiemCongXetTuyenController {
         return filteredRows.get(globalIndex);
     }
 
-    private boolean containsKeyword(XtDiemCongXetTuyen record, String keyword) {
-        return containsIgnoreCase(record.getTsCccd(), keyword)
-                || containsIgnoreCase(record.getMaNganh(), keyword)
-                || containsIgnoreCase(record.getMaToHop(), keyword);
+    private boolean containsKeyword(DiemCongXetTuyenRow record, String keyword) {
+        return containsIgnoreCase(record.getTsCccd(), keyword);
     }
 
     private boolean containsIgnoreCase(String value, String keyword) {
@@ -277,5 +292,22 @@ public class DiemCongXetTuyenController {
 
     private String safeText(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private String resolveNguyenVong(DiemCongXetTuyenRow record) {
+        String keys = record.getNvKeys();
+        if (keys != null && !keys.isBlank()) {
+            return keys.trim();
+        }
+        Integer nvTt = record.getNvTt();
+        return nvTt == null ? "" : "NV" + nvTt;
+    }
+
+    private String resolveToHop(DiemCongXetTuyenRow record) {
+        String tenToHop = record.getTenToHop();
+        if (tenToHop != null && !tenToHop.isBlank()) {
+            return tenToHop.trim();
+        }
+        return safeText(record.getMaToHop());
     }
 }

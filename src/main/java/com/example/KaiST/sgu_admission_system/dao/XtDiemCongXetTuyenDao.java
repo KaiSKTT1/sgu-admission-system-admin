@@ -1,7 +1,10 @@
 package com.example.KaiST.sgu_admission_system.dao;
 
 import com.example.KaiST.sgu_admission_system.config.HibernateUtil;
+import com.example.KaiST.sgu_admission_system.dto.DiemCongXetTuyenRow;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemCongXetTuyen;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
@@ -10,6 +13,62 @@ public class XtDiemCongXetTuyenDao {
     public List<XtDiemCongXetTuyen> findAll() {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             return session.createQuery("from XtDiemCongXetTuyen", XtDiemCongXetTuyen.class).list();
+        }
+    }
+
+    public List<DiemCongXetTuyenRow> findAllRows() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            String sql = "select dc.iddiemcong, dc.ts_cccd, nv.nv_keys, nv.nv_tt, th.tentohop, "
+                    + "dc.matohop, dc.diemCC, dc.diemUtxt, dc.diemTong "
+                    + "from xt_diemcongxetuyen dc "
+                    + "left join xt_nguyenvongxettuyen nv "
+                    + "on nv.nn_cccd = dc.ts_cccd "
+                    + "and nv.nv_manganh = dc.manganh "
+                    + "and nv.tt_phuongthuc = dc.phuongthuc "
+                    + "and nv.tt_thm = dc.matohop "
+                    + "left join xt_tohop_monthi th on th.matohop = dc.matohop";
+            List<Object[]> rows = session.createNativeQuery(sql).list();
+            List<DiemCongXetTuyenRow> result = new ArrayList<>();
+            for (Object[] row : rows) {
+                Integer id = row[0] == null ? null : ((Number) row[0]).intValue();
+                String cccd = row[1] == null ? null : row[1].toString();
+                String nvKeys = row[2] == null ? null : row[2].toString();
+                Integer nvTt = row[3] == null ? null : ((Number) row[3]).intValue();
+                String tenToHop = row[4] == null ? null : row[4].toString();
+                String maToHop = row[5] == null ? null : row[5].toString();
+                BigDecimal diemCc = toBigDecimal(row[6]);
+                BigDecimal diemUtxt = toBigDecimal(row[7]);
+                BigDecimal diemTong = toBigDecimal(row[8]);
+                result.add(new DiemCongXetTuyenRow(id, cccd, nvKeys, nvTt, tenToHop, maToHop,
+                        diemCc, diemUtxt, diemTong));
+            }
+            return result;
+        }
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value instanceof Number) {
+            return BigDecimal.valueOf(((Number) value).doubleValue());
+        }
+        try {
+            return new BigDecimal(value.toString());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    public XtDiemCongXetTuyen findById(Integer id) {
+        if (id == null) {
+            return null;
+        }
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.get(XtDiemCongXetTuyen.class, id);
         }
     }
 

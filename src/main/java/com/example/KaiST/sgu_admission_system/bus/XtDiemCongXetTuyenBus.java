@@ -1,6 +1,7 @@
 package com.example.KaiST.sgu_admission_system.bus;
 
 import com.example.KaiST.sgu_admission_system.dao.XtDiemCongXetTuyenDao;
+import com.example.KaiST.sgu_admission_system.dto.DiemCongXetTuyenRow;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemCongXetTuyen;
 import java.util.List;
 
@@ -17,6 +18,14 @@ public class XtDiemCongXetTuyenBus {
 
     public List<XtDiemCongXetTuyen> findAll() {
         return dao.findAll();
+    }
+
+    public List<DiemCongXetTuyenRow> findAllRows() {
+        return dao.findAllRows();
+    }
+
+    public XtDiemCongXetTuyen findById(Integer id) {
+        return dao.findById(id);
     }
 
     public XtDiemCongXetTuyen save(XtDiemCongXetTuyen entity) {
