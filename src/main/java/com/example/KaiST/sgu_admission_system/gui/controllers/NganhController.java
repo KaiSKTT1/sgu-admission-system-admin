@@ -8,6 +8,7 @@ import com.example.KaiST.sgu_admission_system.utils.ExcelUtils;
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -17,6 +18,7 @@ public class NganhController {
     private final XtNganhBus bus;
     private List<XtNganh> allNganh = new ArrayList<>();
     private List<XtNganh> filteredNganh = new ArrayList<>();
+    private Map<String, Long> nguyenVongCount = new HashMap<>();
     private int currentPage = 1;
 
     public NganhController(NganhView view, XtNganhBus bus) {
@@ -30,6 +32,7 @@ public class NganhController {
 
     public void onRefresh() {
         allNganh = bus.findAll();
+        nguyenVongCount = bus.countNguyenVongByMaNganh();
         onSearch();
     }
 
@@ -196,12 +199,12 @@ public class NganhController {
             int stt = i + 1;
             rows.add(new Object[] {
                     stt,
-                    safeText(nganh.getMaNganh()),
                     safeText(nganh.getTenNganh()),
-                    safeText(nganh.getToHopGoc()),
                     safeText(nganh.getChiTieu()),
                     safeText(nganh.getDiemSan()),
                     safeText(nganh.getDiemTrungTuyen()),
+                    buildPhuongThucText(nganh),
+                    safeText(nguyenVongCount.getOrDefault(nganh.getMaNganh(), 0L)),
                     ""
             });
         }
@@ -230,6 +233,34 @@ public class NganhController {
 
     private boolean containsIgnoreCase(String value, String keyword) {
         return value != null && value.toLowerCase(Locale.ROOT).contains(keyword);
+    }
+
+    private String buildPhuongThucText(XtNganh nganh) {
+        List<String> methods = new ArrayList<>();
+        if (hasPhuongThuc(nganh.getTuyenThang())) {
+            methods.add("Tuyển thẳng");
+        }
+        if (hasPhuongThuc(nganh.getDgnl())) {
+            methods.add("ĐGNL");
+        }
+        if (hasPhuongThuc(nganh.getThpt())) {
+            methods.add("THPT");
+        }
+        if (hasPhuongThuc(nganh.getVsat())) {
+            methods.add("VSAT");
+        }
+        if (methods.isEmpty()) {
+            return "-";
+        }
+        return String.join(", ", methods);
+    }
+
+    private boolean hasPhuongThuc(String value) {
+        if (value == null) {
+            return false;
+        }
+        String normalized = value.trim();
+        return !normalized.isBlank() && !"0".equals(normalized);
     }
 
     private String getValue(Map<String, String> row, String... headers) {

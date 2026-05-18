@@ -48,9 +48,9 @@ public class ContentPanel extends JPanel {
 
         CandidateView candidateView = new CandidateView();
         CandidateController candidateController = new CandidateController(
-            candidateView,
-            new XtThiSinhXetTuyen25Bus(),
-            new XtDiemThiXetTuyenBus());
+                candidateView,
+                new XtThiSinhXetTuyen25Bus(),
+                new XtDiemThiXetTuyenBus());
         candidateView.setController(candidateController);
         candidateController.init();
         add(candidateView, VIEW_CANDIDATE);

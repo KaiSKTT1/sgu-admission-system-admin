@@ -2,7 +2,9 @@ package com.example.KaiST.sgu_admission_system.dao;
 
 import com.example.KaiST.sgu_admission_system.config.HibernateUtil;
 import com.example.KaiST.sgu_admission_system.entity.XtNganh;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
@@ -40,6 +42,24 @@ public class XtNganhDao {
                 transaction.rollback();
             }
             throw ex;
+        }
+    }
+
+    public Map<String, Long> countNguyenVongByMaNganh() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            List<Object[]> rows = session.createQuery(
+                    "select nvMaNganh, count(*) from XtNguyenVongXetTuyen group by nvMaNganh",
+                    Object[].class)
+                    .list();
+            Map<String, Long> result = new HashMap<>();
+            for (Object[] row : rows) {
+                String maNganh = row[0] == null ? null : row[0].toString();
+                Long count = row[1] == null ? 0L : (Long) row[1];
+                if (maNganh != null && !maNganh.isBlank()) {
+                    result.put(maNganh, count);
+                }
+            }
+            return result;
         }
     }
 

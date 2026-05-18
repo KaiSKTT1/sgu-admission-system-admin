@@ -52,12 +52,12 @@ public class NganhView extends JPanel {
 
         String[] columns = {
                 "STT",
-                "Mã ngành",
                 "Tên ngành",
-                "Tổ hợp gốc",
                 "Chỉ tiêu",
                 "Điểm sàn",
                 "Điểm trúng tuyển",
+                "Phương thức xét tuyển",
+                "Số thí sinh đăng ký NV",
                 "Chức năng"
         };
         tableModel = new DefaultTableModel(columns, 0) {

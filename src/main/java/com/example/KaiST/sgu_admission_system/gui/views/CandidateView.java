@@ -103,9 +103,9 @@ public class CandidateView extends JPanel {
         ImageIcon scoreIcon = tintIcon(loadIcon("/icon/eye.png", ICON_SIZE, false), Color.BLACK);
 
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setCellRenderer(
-            new ActionCellRenderer(eyeIcon, editIcon, deleteIcon, scoreIcon));
+                new ActionCellRenderer(eyeIcon, editIcon, deleteIcon, scoreIcon));
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setCellEditor(
-            new ActionCellEditor(eyeIcon, editIcon, deleteIcon, scoreIcon));
+                new ActionCellEditor(eyeIcon, editIcon, deleteIcon, scoreIcon));
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMaxWidth(180);
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMinWidth(180);
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setPreferredWidth(180);
