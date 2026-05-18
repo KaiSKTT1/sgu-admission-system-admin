@@ -4,6 +4,7 @@ import com.example.KaiST.sgu_admission_system.gui.components.HorizontalButtonPan
 import com.example.KaiST.sgu_admission_system.gui.components.PaginationPanel;
 import com.example.KaiST.sgu_admission_system.gui.components.SearchPanel;
 import com.example.KaiST.sgu_admission_system.gui.controllers.UserController;
+import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -44,6 +45,7 @@ public class UserView extends JPanel {
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
         JPanel headerPanel = new JPanel(new BorderLayout(8, 8));
+        headerPanel.setOpaque(false);
         searchPanel = createSearchPanel();
         headerPanel.add(searchPanel, BorderLayout.WEST);
         headerPanel.add(createActionPanel(), BorderLayout.EAST);
@@ -66,8 +68,10 @@ public class UserView extends JPanel {
         };
         table = new JTable(tableModel);
         table.setRowHeight(30);
+        UiTheme.applyTableStyle(table);
 
         JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setOpaque(false);
         tablePanel.add(new JScrollPane(table), BorderLayout.CENTER);
         add(tablePanel, BorderLayout.CENTER);
 
@@ -104,9 +108,9 @@ public class UserView extends JPanel {
                 new ActionCellRenderer(eyeIcon, editIcon, deleteIcon));
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setCellEditor(
                 new ActionCellEditor(eyeIcon, editIcon, deleteIcon));
-            table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMaxWidth(200);
-            table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMinWidth(200);
-            table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setPreferredWidth(200);
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMaxWidth(200);
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMinWidth(200);
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setPreferredWidth(200);
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setResizable(false);
     }
 

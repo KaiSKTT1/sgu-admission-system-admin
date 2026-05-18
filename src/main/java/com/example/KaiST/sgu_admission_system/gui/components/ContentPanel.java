@@ -29,104 +29,107 @@ import com.example.KaiST.sgu_admission_system.gui.views.NganhView;
 import com.example.KaiST.sgu_admission_system.gui.views.SettingsView;
 import com.example.KaiST.sgu_admission_system.gui.views.ToHopMonThiView;
 import com.example.KaiST.sgu_admission_system.gui.views.UserView;
+import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.CardLayout;
 import javax.swing.JPanel;
 
 public class ContentPanel extends JPanel {
-    public static final String VIEW_DASHBOARD = "dashboard";
-    public static final String VIEW_CANDIDATE = "candidate";
-    public static final String VIEW_DIEMTHI = "diemthi";
-    public static final String VIEW_DIEMCONG = "diemcong";
-    public static final String VIEW_DIEMXET = "diemxet";
+        public static final String VIEW_DASHBOARD = "dashboard";
+        public static final String VIEW_CANDIDATE = "candidate";
+        public static final String VIEW_DIEMTHI = "diemthi";
+        public static final String VIEW_DIEMCONG = "diemcong";
+        public static final String VIEW_DIEMXET = "diemxet";
         public static final String VIEW_USER = "user";
-    public static final String VIEW_QUYDOI = "quydoi";
-    public static final String VIEW_NGANH = "nganh";
-    public static final String VIEW_TOHOP = "tohop";
-    public static final String VIEW_SETTINGS = "settings";
+        public static final String VIEW_QUYDOI = "quydoi";
+        public static final String VIEW_NGANH = "nganh";
+        public static final String VIEW_TOHOP = "tohop";
+        public static final String VIEW_SETTINGS = "settings";
 
-    private final CardLayout cardLayout;
+        private final CardLayout cardLayout;
 
-    public ContentPanel() {
-        cardLayout = new CardLayout();
-        setLayout(cardLayout);
+        public ContentPanel() {
+                cardLayout = new CardLayout();
+                setLayout(cardLayout);
+                setBackground(UiTheme.PAGE_BG);
 
-        DashboardView dashboardView = new DashboardView();
-        DashboardController dashboardController = new DashboardController(dashboardView, new XtThiSinhXetTuyen25Bus());
-        dashboardView.setController(dashboardController);
-        dashboardController.init();
-        add(dashboardView, VIEW_DASHBOARD);
+                DashboardView dashboardView = new DashboardView();
+                DashboardController dashboardController = new DashboardController(dashboardView,
+                                new XtThiSinhXetTuyen25Bus());
+                dashboardView.setController(dashboardController);
+                dashboardController.init();
+                add(dashboardView, VIEW_DASHBOARD);
 
-        CandidateView candidateView = new CandidateView();
-        CandidateController candidateController = new CandidateController(
-                candidateView,
-                new XtThiSinhXetTuyen25Bus(),
-                new XtDiemThiXetTuyenBus());
-        candidateView.setController(candidateController);
-        candidateController.init();
-        add(candidateView, VIEW_CANDIDATE);
+                CandidateView candidateView = new CandidateView();
+                CandidateController candidateController = new CandidateController(
+                                candidateView,
+                                new XtThiSinhXetTuyen25Bus(),
+                                new XtDiemThiXetTuyenBus());
+                candidateView.setController(candidateController);
+                candidateController.init();
+                add(candidateView, VIEW_CANDIDATE);
 
-        DiemThiXetTuyenView diemThiView = new DiemThiXetTuyenView();
-        DiemThiXetTuyenController diemThiController = new DiemThiXetTuyenController(
-                diemThiView,
-                new XtDiemThiXetTuyenBus());
-        diemThiView.setController(diemThiController);
-        diemThiController.init();
-        add(diemThiView, VIEW_DIEMTHI);
+                DiemThiXetTuyenView diemThiView = new DiemThiXetTuyenView();
+                DiemThiXetTuyenController diemThiController = new DiemThiXetTuyenController(
+                                diemThiView,
+                                new XtDiemThiXetTuyenBus());
+                diemThiView.setController(diemThiController);
+                diemThiController.init();
+                add(diemThiView, VIEW_DIEMTHI);
 
-        DiemCongXetTuyenView diemCongView = new DiemCongXetTuyenView();
-        DiemCongXetTuyenController diemCongController = new DiemCongXetTuyenController(
-                diemCongView,
-                new XtDiemCongXetTuyenBus());
-        diemCongView.setController(diemCongController);
-        diemCongController.init();
-        add(diemCongView, VIEW_DIEMCONG);
+                DiemCongXetTuyenView diemCongView = new DiemCongXetTuyenView();
+                DiemCongXetTuyenController diemCongController = new DiemCongXetTuyenController(
+                                diemCongView,
+                                new XtDiemCongXetTuyenBus());
+                diemCongView.setController(diemCongController);
+                diemCongController.init();
+                add(diemCongView, VIEW_DIEMCONG);
 
-        DiemXetTuyenView diemXetView = new DiemXetTuyenView();
-        XetTuyenBus xetTuyenBus = new XetTuyenBus(
-                new XtThiSinhXetTuyen25Bus(),
-                new XtNguyenVongXetTuyenBus(),
-                new XtDiemThiXetTuyenBus(),
-                new XtDiemCongXetTuyenBus(),
-                new XtBangQuyDoiBus(),
-                new XtNganhBus(),
-                new XtNganhToHopBus());
-        DiemXetTuyenController diemXetController = new DiemXetTuyenController(diemXetView, xetTuyenBus);
-        diemXetView.setController(diemXetController);
-        diemXetController.init();
-        add(diemXetView, VIEW_DIEMXET);
+                DiemXetTuyenView diemXetView = new DiemXetTuyenView();
+                XetTuyenBus xetTuyenBus = new XetTuyenBus(
+                                new XtThiSinhXetTuyen25Bus(),
+                                new XtNguyenVongXetTuyenBus(),
+                                new XtDiemThiXetTuyenBus(),
+                                new XtDiemCongXetTuyenBus(),
+                                new XtBangQuyDoiBus(),
+                                new XtNganhBus(),
+                                new XtNganhToHopBus());
+                DiemXetTuyenController diemXetController = new DiemXetTuyenController(diemXetView, xetTuyenBus);
+                diemXetView.setController(diemXetController);
+                diemXetController.init();
+                add(diemXetView, VIEW_DIEMXET);
 
-        UserView userView = new UserView();
-        UserController userController = new UserController(userView, new XtUserBus());
-        userView.setController(userController);
-        userController.init();
-        add(userView, VIEW_USER);
+                UserView userView = new UserView();
+                UserController userController = new UserController(userView, new XtUserBus());
+                userView.setController(userController);
+                userController.init();
+                add(userView, VIEW_USER);
 
-        BangQuyDoiView quyDoiView = new BangQuyDoiView();
-        BangQuyDoiController quyDoiController = new BangQuyDoiController(
-                quyDoiView,
-                new XtBangQuyDoiBus());
-        quyDoiView.setController(quyDoiController);
-        quyDoiController.init();
-        add(quyDoiView, VIEW_QUYDOI);
+                BangQuyDoiView quyDoiView = new BangQuyDoiView();
+                BangQuyDoiController quyDoiController = new BangQuyDoiController(
+                                quyDoiView,
+                                new XtBangQuyDoiBus());
+                quyDoiView.setController(quyDoiController);
+                quyDoiController.init();
+                add(quyDoiView, VIEW_QUYDOI);
 
-        NganhView nganhView = new NganhView();
-        NganhController nganhController = new NganhController(nganhView, new XtNganhBus());
-        nganhView.setController(nganhController);
-        nganhController.init();
-        add(nganhView, VIEW_NGANH);
+                NganhView nganhView = new NganhView();
+                NganhController nganhController = new NganhController(nganhView, new XtNganhBus());
+                nganhView.setController(nganhController);
+                nganhController.init();
+                add(nganhView, VIEW_NGANH);
 
-        ToHopMonThiView toHopView = new ToHopMonThiView();
-        ToHopMonThiController toHopController = new ToHopMonThiController(toHopView, new XtToHopMonThiBus());
-        toHopView.setController(toHopController);
-        toHopController.init();
-        add(toHopView, VIEW_TOHOP);
+                ToHopMonThiView toHopView = new ToHopMonThiView();
+                ToHopMonThiController toHopController = new ToHopMonThiController(toHopView, new XtToHopMonThiBus());
+                toHopView.setController(toHopController);
+                toHopController.init();
+                add(toHopView, VIEW_TOHOP);
 
-        add(new SettingsView(), VIEW_SETTINGS);
+                add(new SettingsView(), VIEW_SETTINGS);
 
-        showView(VIEW_DASHBOARD);
-    }
+                showView(VIEW_DASHBOARD);
+        }
 
-    public void showView(String viewKey) {
-        cardLayout.show(this, viewKey);
-    }
+        public void showView(String viewKey) {
+                cardLayout.show(this, viewKey);
+        }
 }

@@ -1,6 +1,7 @@
 package com.example.KaiST.sgu_admission_system.gui.components;
 
 import java.awt.FlowLayout;
+import java.awt.Insets;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -11,9 +12,14 @@ public class SearchPanel extends JPanel {
 
     public SearchPanel(String label, int columns, Runnable onSearch) {
         setLayout(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        setOpaque(false);
 
         searchField = new JTextField(columns);
+        searchField.putClientProperty("JTextField.placeholderText", "Nhập từ khóa...");
+
         JButton searchButton = new JButton("Tìm kiếm");
+        searchButton.putClientProperty("JButton.buttonType", "roundRect");
+        searchButton.setMargin(new Insets(6, 14, 6, 14));
         searchButton.addActionListener(event -> onSearch.run());
 
         add(new JLabel(label));

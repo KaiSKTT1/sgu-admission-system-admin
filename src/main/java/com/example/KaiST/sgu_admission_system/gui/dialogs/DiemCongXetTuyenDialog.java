@@ -1,6 +1,8 @@
 package com.example.KaiST.sgu_admission_system.gui.dialogs;
 
 import com.example.KaiST.sgu_admission_system.entity.XtDiemCongXetTuyen;
+import com.example.KaiST.sgu_admission_system.gui.components.CardPanel;
+import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
@@ -36,9 +38,20 @@ public class DiemCongXetTuyenDialog extends JDialog {
         this.row = existing != null ? copyRow(existing) : new XtDiemCongXetTuyen();
 
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout(12, 12));
-        add(createFormPanel(), BorderLayout.CENTER);
-        add(createFooterPanel(), BorderLayout.SOUTH);
+        setLayout(new BorderLayout());
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBorder(new EmptyBorder(16, 16, 16, 16));
+        wrapper.setBackground(UiTheme.PAGE_BG);
+
+        JPanel card = new CardPanel();
+        card.setLayout(new BorderLayout(0, 12));
+        card.setBorder(new EmptyBorder(16, 16, 16, 16));
+        card.add(createFormPanel(), BorderLayout.CENTER);
+        card.add(createFooterPanel(), BorderLayout.SOUTH);
+
+        wrapper.add(card, BorderLayout.CENTER);
+        add(wrapper, BorderLayout.CENTER);
         pack();
         setLocationRelativeTo(owner);
     }
@@ -53,6 +66,7 @@ public class DiemCongXetTuyenDialog extends JDialog {
 
     private JPanel createFormPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
+        panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(12, 12, 12, 12));
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.insets = new Insets(6, 6, 6, 6);
@@ -103,13 +117,15 @@ public class DiemCongXetTuyenDialog extends JDialog {
     }
 
     private JPanel createFooterPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        panel.setOpaque(false);
         JButton closeButton = new JButton(mode == Mode.VIEW ? "Đóng" : "Hủy");
         closeButton.addActionListener(event -> dispose());
         panel.add(closeButton);
 
         if (mode != Mode.VIEW) {
             JButton saveButton = new JButton("Lưu");
+            saveButton.putClientProperty("JButton.buttonType", "roundRect");
             saveButton.addActionListener(event -> onSave());
             panel.add(saveButton);
         }

@@ -2,6 +2,7 @@ package com.example.KaiST.sgu_admission_system.gui;
 
 import com.example.KaiST.sgu_admission_system.gui.components.ContentPanel;
 import com.example.KaiST.sgu_admission_system.gui.components.SidebarPanel;
+import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import com.example.KaiST.sgu_admission_system.entity.XtUser;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -14,6 +15,7 @@ public class GUI extends JFrame {
         setTitle("Hệ thống tuyển sinh SGU");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
+        getContentPane().setBackground(UiTheme.PAGE_BG);
 
         contentPanel = new ContentPanel();
         SidebarPanel sidebarPanel = new SidebarPanel(contentPanel, loggedIn);

@@ -2,6 +2,7 @@ package com.example.KaiST.sgu_admission_system.gui.components;
 
 import com.example.KaiST.sgu_admission_system.commen.Quyen;
 import com.example.KaiST.sgu_admission_system.entity.XtUser;
+import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.util.HashMap;
@@ -14,17 +15,18 @@ import javax.swing.border.EmptyBorder;
 public class SidebarPanel extends JPanel {
     private final ContentPanel contentPanel;
     private final Map<String, JButton> navButtons = new HashMap<>();
-    private final Color activeColor = new Color(210, 228, 245);
-    private final Color defaultColor = new Color(245, 245, 245);
-    private final Color activeTextColor = new Color(28, 64, 112);
-    private final Color defaultTextColor = new Color(40, 40, 40);
+    private final Color activeColor = new Color(219, 234, 254);
+    private final Color defaultColor = Color.WHITE;
+    private final Color activeTextColor = UiTheme.PRIMARY;
+    private final Color defaultTextColor = UiTheme.TEXT_DARK;
 
     public SidebarPanel(ContentPanel contentPanel, XtUser loggedIn) {
         this.contentPanel = contentPanel;
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBorder(new EmptyBorder(16, 16, 16, 16));
-        setPreferredSize(new Dimension(220, 0));
+        setBorder(new EmptyBorder(16, 12, 16, 12));
+        setPreferredSize(new Dimension(230, 0));
+        setBackground(Color.WHITE);
 
         boolean isAdmin = Quyen.fromRole(loggedIn == null ? null : loggedIn.getRole()).isAdmin();
 
@@ -47,11 +49,14 @@ public class SidebarPanel extends JPanel {
     private JButton createNavButton(String text, String viewKey) {
         JButton button = new JButton(text);
         button.setAlignmentX(LEFT_ALIGNMENT);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         button.setOpaque(true);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(true);
+        button.setHorizontalAlignment(JButton.LEFT);
+        button.setBorder(new EmptyBorder(8, 12, 8, 12));
+        button.putClientProperty("JButton.buttonType", "roundRect");
         button.setBackground(defaultColor);
         button.setForeground(defaultTextColor);
         button.addActionListener(event -> {

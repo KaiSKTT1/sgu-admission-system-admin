@@ -3,7 +3,10 @@ package com.example.KaiST.sgu_admission_system.gui.dialogs;
 import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemThiXetTuyen;
 import com.example.KaiST.sgu_admission_system.entity.XtThiSinhXetTuyen25;
+import com.example.KaiST.sgu_admission_system.gui.components.CardPanel;
+import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -24,11 +27,16 @@ public class ThiSinhScoreDialog extends JDialog {
     public ThiSinhScoreDialog(Window owner, XtThiSinhXetTuyen25 candidate, List<XtDiemThiXetTuyen> scores) {
         super(owner, "Điểm thí sinh", ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout(12, 12));
+        setLayout(new BorderLayout());
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBorder(new EmptyBorder(16, 16, 16, 16));
+        wrapper.setBackground(UiTheme.PAGE_BG);
 
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(new EmptyBorder(12, 12, 12, 12));
+        content.setOpaque(false);
 
         JLabel header = new JLabel(buildHeader(candidate));
         content.add(header);
@@ -62,13 +70,23 @@ public class ThiSinhScoreDialog extends JDialog {
         }
 
         JScrollPane scrollPane = new JScrollPane(content);
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(null);
 
-        JPanel footer = new JPanel();
+        JPanel card = new CardPanel();
+        card.setLayout(new BorderLayout(0, 12));
+        card.setBorder(new EmptyBorder(12, 12, 12, 12));
+        card.add(scrollPane, BorderLayout.CENTER);
+
+        wrapper.add(card, BorderLayout.CENTER);
+        add(wrapper, BorderLayout.CENTER);
+
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        footer.setOpaque(false);
         JButton closeButton = new JButton("Đóng");
+        closeButton.putClientProperty("JButton.buttonType", "roundRect");
         closeButton.addActionListener(event -> dispose());
         footer.add(closeButton);
-        add(footer, BorderLayout.SOUTH);
+        card.add(footer, BorderLayout.SOUTH);
 
         setSize(520, 540);
         setLocationRelativeTo(owner);
@@ -86,6 +104,7 @@ public class ThiSinhScoreDialog extends JDialog {
         for (XtDiemThiXetTuyen score : scores) {
             JPanel panel = new JPanel(new GridBagLayout());
             panel.setBorder(new EmptyBorder(4, 12, 8, 12));
+            panel.setOpaque(false);
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(3, 6, 3, 6);
             gbc.anchor = GridBagConstraints.WEST;

@@ -37,7 +37,7 @@ public final class HibernateUtil {
     private static SessionFactory buildSessionFactory() {
         Configuration configuration = new Configuration();
 
-        String dbUrl = getEnv("DB_URL", "jdbc:mysql://localhost:3306/sgu-admission");
+        String dbUrl = getEnv("DB_URL", "jdbc:mysql://localhost:3306/sgu-test");
         String dbUsername = getEnv("DB_USERNAME", "hbstudent");
         String dbPassword = getEnv("DB_PASSWORD", "hbstudent");
         String dbDriver = getEnv("DB_DRIVER", "com.mysql.cj.jdbc.Driver");

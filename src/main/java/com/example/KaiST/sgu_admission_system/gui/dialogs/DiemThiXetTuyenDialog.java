@@ -2,6 +2,8 @@ package com.example.KaiST.sgu_admission_system.gui.dialogs;
 
 import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemThiXetTuyen;
+import com.example.KaiST.sgu_admission_system.gui.components.CardPanel;
+import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
@@ -38,9 +40,20 @@ public class DiemThiXetTuyenDialog extends JDialog {
         this.score = existing != null ? copyScore(existing) : new XtDiemThiXetTuyen();
 
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout(12, 12));
-        add(createFormPanel(), BorderLayout.CENTER);
-        add(createFooterPanel(), BorderLayout.SOUTH);
+        setLayout(new BorderLayout());
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBorder(new EmptyBorder(16, 16, 16, 16));
+        wrapper.setBackground(UiTheme.PAGE_BG);
+
+        JPanel card = new CardPanel();
+        card.setLayout(new BorderLayout(0, 12));
+        card.setBorder(new EmptyBorder(16, 16, 16, 16));
+        card.add(createFormPanel(), BorderLayout.CENTER);
+        card.add(createFooterPanel(), BorderLayout.SOUTH);
+
+        wrapper.add(card, BorderLayout.CENTER);
+        add(wrapper, BorderLayout.CENTER);
         pack();
         setLocationRelativeTo(owner);
     }
@@ -55,10 +68,13 @@ public class DiemThiXetTuyenDialog extends JDialog {
 
     private JPanel createFormPanel() {
         JPanel panel = new JPanel(new GridLayout(1, 2, 12, 0));
+        panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(12, 12, 12, 12));
 
         JPanel leftPanel = new JPanel(new GridBagLayout());
+        leftPanel.setOpaque(false);
         JPanel rightPanel = new JPanel(new GridBagLayout());
+        rightPanel.setOpaque(false);
 
         GridBagConstraints leftConstraints = new GridBagConstraints();
         leftConstraints.insets = new Insets(6, 6, 6, 6);
@@ -137,13 +153,15 @@ public class DiemThiXetTuyenDialog extends JDialog {
     }
 
     private JPanel createFooterPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        panel.setOpaque(false);
         JButton closeButton = new JButton(mode == Mode.VIEW ? "Đóng" : "Hủy");
         closeButton.addActionListener(event -> dispose());
         panel.add(closeButton);
 
         if (mode != Mode.VIEW) {
             JButton saveButton = new JButton("Lưu");
+            saveButton.putClientProperty("JButton.buttonType", "roundRect");
             saveButton.addActionListener(event -> onSave());
             panel.add(saveButton);
         }

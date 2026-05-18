@@ -1,161 +1,123 @@
 package com.example.KaiST.sgu_admission_system.gui.views;
 
-import com.example.KaiST.sgu_admission_system.gui.components.HorizontalButtonPanel;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardController;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.FlowLayout;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.Window;
 import java.awt.image.BufferedImage;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
-import javax.swing.DefaultCellEditor;
+import java.util.Locale;
+import java.util.Map;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
-import javax.swing.ImageIcon;
-import java.awt.GridLayout;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
 
 public class DashboardView extends JPanel {
     private static final int ICON_SIZE = 18;
+    private static final Color PAGE_BG = new Color(245, 247, 250);
+    private static final Color CARD_BG = Color.WHITE;
+    private static final Color CARD_BORDER = new Color(226, 232, 240);
+    private static final Color TEXT_MUTED = new Color(100, 116, 139);
+    private static final Color TEXT_DARK = new Color(30, 41, 59);
 
-    private final DefaultTableModel tableModel;
-    private final JTable table;
     private final JLabel totalLabel;
-    private final JLabel doiTuongLabel;
-    private final JLabel khuVucLabel;
+    private final JLabel approvedLabel;
+    private final JLabel pendingLabel;
+    private final JLabel regionLabel;
+    private final RegionChartPanel chartPanel;
     private DashboardController controller;
 
     public DashboardView() {
-        setLayout(new BorderLayout(12, 12));
-        setBorder(new EmptyBorder(12, 12, 12, 12));
+        setLayout(new BorderLayout(16, 16));
+        setBorder(new EmptyBorder(16, 16, 16, 16));
+        setBackground(PAGE_BG);
 
         JPanel headerPanel = new JPanel(new BorderLayout(8, 8));
-        headerPanel.add(new JLabel("Thí sinh nổi bật"), BorderLayout.WEST);
+        headerPanel.setOpaque(false);
+        headerPanel.add(createTitlePanel(), BorderLayout.WEST);
         headerPanel.add(createActionPanel(), BorderLayout.EAST);
 
-        totalLabel = new JLabel("0", JLabel.LEFT);
-        doiTuongLabel = new JLabel("Chưa có", JLabel.LEFT);
-        khuVucLabel = new JLabel("Chưa có", JLabel.LEFT);
+        totalLabel = createValueLabel();
+        approvedLabel = createValueLabel();
+        pendingLabel = createValueLabel();
+        regionLabel = createValueLabel();
 
-        JPanel statsPanel = new JPanel(new GridLayout(1, 3, 12, 12));
-        statsPanel.add(createStatCard("Tổng thí sinh", totalLabel));
-        statsPanel.add(createStatCard("Theo đối tượng", doiTuongLabel));
-        statsPanel.add(createStatCard("Theo khu vực", khuVucLabel));
+        JPanel statsPanel = new JPanel(new java.awt.GridLayout(1, 4, 16, 16));
+        statsPanel.setOpaque(false);
+        statsPanel.add(createStatCard("Tổng số thí sinh", totalLabel, loadIcon("/icon/plus.png", ICON_SIZE),
+                new Color(37, 99, 235)));
+        statsPanel.add(createStatCard("Số hồ sơ đã duyệt", approvedLabel, loadIcon("/icon/eye.png", ICON_SIZE),
+                new Color(16, 185, 129)));
+        statsPanel.add(createStatCard("Số hồ sơ chờ duyệt", pendingLabel, loadIcon("/icon/pencil.png", ICON_SIZE),
+                new Color(245, 158, 11)));
+        statsPanel.add(createStatCard("Số lượng thí sinh theo khu vực", regionLabel,
+                loadIcon("/icon/circle-x.png", ICON_SIZE), new Color(148, 163, 184)));
 
-        JPanel topPanel = new JPanel(new BorderLayout(0, 8));
+        chartPanel = new RegionChartPanel();
+        JPanel chartCard = createChartCard(chartPanel);
+
+        JPanel topPanel = new JPanel(new BorderLayout(0, 16));
+        topPanel.setOpaque(false);
         topPanel.add(headerPanel, BorderLayout.NORTH);
-        topPanel.add(statsPanel, BorderLayout.SOUTH);
+        topPanel.add(statsPanel, BorderLayout.CENTER);
+
         add(topPanel, BorderLayout.NORTH);
+        add(chartCard, BorderLayout.CENTER);
+    }
 
-        String[] columns = {
-                "CCCD",
-                "Số báo danh",
-                "Họ tên",
-                "Ngày sinh",
-                "Giới tính",
-                "Khu vực",
-                "",
-                "",
-                ""
-        };
+    private JPanel createTitlePanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 2));
+        panel.setOpaque(false);
 
-        tableModel = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column >= 6;
-            }
-        };
-        table = new JTable(tableModel);
-        table.setRowHeight(28);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        JLabel title = new JLabel("Tổng quan tuyển sinh");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
+        title.setForeground(TEXT_DARK);
 
-        setupActionColumns();
+        JLabel subtitle = new JLabel("Cập nhật nhanh dữ liệu hồ sơ trong hệ thống");
+        subtitle.setForeground(TEXT_MUTED);
+
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(subtitle, BorderLayout.SOUTH);
+        return panel;
     }
 
     private JPanel createActionPanel() {
-        JButton addButton = new JButton("Thêm");
-        ImageIcon plusIcon = tintIcon(loadIcon("/icon/plus.png", ICON_SIZE), Color.BLACK);
-        if (plusIcon != null) {
-            addButton.setIcon(plusIcon);
+        JButton refreshButton = new JButton("Làm mới");
+        ImageIcon refreshIcon = tintIcon(loadIcon("/icon/eye.png", ICON_SIZE), TEXT_MUTED);
+        if (refreshIcon != null) {
+            refreshButton.setIcon(refreshIcon);
         }
-        addButton.addActionListener(event -> runWithController(DashboardController::onAdd));
-
-        JButton refreshButton = new JButton("Refresh");
         refreshButton.addActionListener(event -> runWithController(DashboardController::onRefresh));
 
-        return new HorizontalButtonPanel(FlowLayout.RIGHT, 8, refreshButton, addButton);
-    }
-
-    private void setupActionColumns() {
-        ImageIcon eyeIcon = tintIcon(loadIcon("/icon/eye.png", ICON_SIZE), Color.BLACK);
-        ImageIcon editIcon = tintIcon(loadIcon("/icon/pencil.png", ICON_SIZE), Color.BLACK);
-        ImageIcon deleteIcon = tintIcon(loadIcon("/icon/circle-x.png", ICON_SIZE), Color.BLACK);
-
-        table.getColumnModel().getColumn(6).setCellRenderer(new IconButtonRenderer(
-                eyeIcon));
-        table.getColumnModel().getColumn(7).setCellRenderer(new IconButtonRenderer(
-                editIcon));
-        table.getColumnModel().getColumn(8).setCellRenderer(new IconButtonRenderer(
-                deleteIcon));
-
-        table.getColumnModel().getColumn(6).setCellEditor(new IconButtonEditor(
-                new JCheckBox(),
-                eyeIcon,
-                row -> runWithController(ctrl -> ctrl.onViewRow(row))));
-        table.getColumnModel().getColumn(7).setCellEditor(new IconButtonEditor(
-                new JCheckBox(),
-                editIcon,
-                row -> runWithController(ctrl -> ctrl.onEditRow(row))));
-        table.getColumnModel().getColumn(8).setCellEditor(new IconButtonEditor(
-                new JCheckBox(),
-                deleteIcon,
-                row -> runWithController(ctrl -> ctrl.onDeleteRow(row))));
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.add(refreshButton, BorderLayout.EAST);
+        return panel;
     }
 
     public void setController(DashboardController controller) {
         this.controller = controller;
     }
 
-    public int getMaxRows() {
-        return 20;
-    }
-
-    public void setTableRows(List<Object[]> rows) {
-        tableModel.setRowCount(0);
-        for (Object[] row : rows) {
-            tableModel.addRow(row);
-        }
-    }
-
-    public void setStats(int total, String doiTuongSummary, String khuVucSummary) {
-        totalLabel.setText(String.valueOf(total));
-        doiTuongLabel.setText(asMultiline(doiTuongSummary));
-        khuVucLabel.setText(asMultiline(khuVucSummary));
-    }
-
-    public void showInfo(String message) {
-        javax.swing.JOptionPane.showMessageDialog(this, message, "Thông báo",
-                javax.swing.JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    public boolean confirm(String message) {
-        int confirm = javax.swing.JOptionPane.showConfirmDialog(
-                this,
-                message,
-                "Xác nhận",
-                javax.swing.JOptionPane.YES_NO_OPTION,
-                javax.swing.JOptionPane.WARNING_MESSAGE);
-        return confirm == javax.swing.JOptionPane.YES_OPTION;
+    public void setOverview(int total, int approved, int pending, String regionSummary,
+            Map<String, Integer> regionCounts) {
+        totalLabel.setText(formatNumber(total));
+        approvedLabel.setText(formatNumber(approved));
+        pendingLabel.setText(formatNumber(pending));
+        regionLabel.setText(asMultiline(regionSummary));
+        chartPanel.setData(regionCounts);
     }
 
     public Window getWindow() {
@@ -207,16 +169,53 @@ public class DashboardView extends JPanel {
         return new ImageIcon(image);
     }
 
-    private JPanel createStatCard(String title, JLabel valueLabel) {
-        JPanel panel = new JPanel(new BorderLayout(4, 4));
+    private JPanel createStatCard(String title, JLabel valueLabel, ImageIcon icon, Color iconColor) {
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setForeground(Color.DARK_GRAY);
-        panel.add(titleLabel, BorderLayout.NORTH);
+        titleLabel.setForeground(TEXT_MUTED);
+        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.PLAIN, 12f));
+
+        JLabel iconLabel = new JLabel();
+        if (icon != null) {
+            iconLabel.setIcon(tintIcon(icon, iconColor));
+        }
+        iconLabel.setPreferredSize(new Dimension(28, 28));
+
+        JPanel header = new JPanel(new BorderLayout(8, 0));
+        header.setOpaque(false);
+        header.add(titleLabel, BorderLayout.CENTER);
+        header.add(iconLabel, BorderLayout.EAST);
+
+        JPanel panel = new CardPanel();
+        panel.setLayout(new BorderLayout(0, 6));
+        panel.add(header, BorderLayout.NORTH);
         panel.add(valueLabel, BorderLayout.CENTER);
-        panel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220)),
-                new EmptyBorder(8, 8, 8, 8)));
+        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
         return panel;
+    }
+
+    private JPanel createChartCard(JPanel chart) {
+        JPanel panel = new CardPanel();
+        panel.setLayout(new BorderLayout(0, 12));
+        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
+
+        JLabel title = new JLabel("Thống kê thí sinh theo khu vực");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
+        title.setForeground(TEXT_DARK);
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(chart, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JLabel createValueLabel() {
+        JLabel label = new JLabel("0");
+        label.setFont(label.getFont().deriveFont(Font.BOLD, 20f));
+        label.setForeground(TEXT_DARK);
+        return label;
+    }
+
+    private String formatNumber(int value) {
+        NumberFormat format = NumberFormat.getInstance(new Locale("vi", "VN"));
+        return format.format(value);
     }
 
     private String asMultiline(String text) {
@@ -226,44 +225,92 @@ public class DashboardView extends JPanel {
         return "<html>" + text.replace("\n", "<br>") + "</html>";
     }
 
-    private final class IconButtonRenderer extends JButton implements TableCellRenderer {
-        public IconButtonRenderer(javax.swing.Icon icon) {
-            setIcon(icon);
-            setBorderPainted(false);
-            setContentAreaFilled(false);
-            setFocusPainted(false);
+    private final class CardPanel extends JPanel {
+        public CardPanel() {
+            setOpaque(false);
         }
 
         @Override
-        public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                boolean hasFocus, int row, int column) {
-            return this;
+        protected void paintComponent(java.awt.Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(CARD_BG);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+            g2.setColor(CARD_BORDER);
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+            g2.dispose();
+            super.paintComponent(g);
         }
     }
 
-    private final class IconButtonEditor extends DefaultCellEditor {
-        private final JButton button;
-        private final java.util.function.IntConsumer action;
-        private int row;
+    private final class RegionChartPanel extends JPanel {
+        private static final int PADDING = 16;
+        private static final int AXIS_HEIGHT = 24;
+        private static final int LABEL_WIDTH = 70;
+        private final List<Color> barColors = List.of(
+                new Color(59, 130, 246),
+                new Color(16, 185, 129),
+                new Color(245, 158, 11),
+                new Color(99, 102, 241),
+                new Color(236, 72, 153),
+                new Color(148, 163, 184));
+        private Map<String, Integer> data = new LinkedHashMap<>();
 
-        public IconButtonEditor(JCheckBox checkBox, javax.swing.Icon icon, java.util.function.IntConsumer action) {
-            super(checkBox);
-            this.action = action;
-            this.button = new JButton(icon);
-            this.button.setBorderPainted(false);
-            this.button.setContentAreaFilled(false);
-            this.button.setFocusPainted(false);
-            this.button.addActionListener(event -> {
-                action.accept(row);
-                fireEditingStopped();
-            });
+        public RegionChartPanel() {
+            setOpaque(false);
+            setPreferredSize(new Dimension(520, 260));
+        }
+
+        public void setData(Map<String, Integer> data) {
+            this.data = data == null ? new LinkedHashMap<>() : new LinkedHashMap<>(data);
+            repaint();
         }
 
         @Override
-        public java.awt.Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected,
-                int row, int column) {
-            this.row = row;
-            return button;
+        protected void paintComponent(java.awt.Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Color.WHITE);
+            g2.fillRect(0, 0, getWidth(), getHeight());
+
+            if (data.isEmpty()) {
+                g2.setColor(TEXT_MUTED);
+                g2.drawString("Chưa có dữ liệu", PADDING, PADDING + 12);
+                g2.dispose();
+                return;
+            }
+
+            List<Map.Entry<String, Integer>> entries = new ArrayList<>(data.entrySet());
+            entries.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
+            if (entries.size() > 6) {
+                entries = entries.subList(0, 6);
+            }
+
+            int maxValue = entries.stream().map(Map.Entry::getValue).max(Integer::compareTo).orElse(1);
+            int availableWidth = getWidth() - PADDING * 2 - LABEL_WIDTH;
+            int availableHeight = getHeight() - PADDING * 2 - AXIS_HEIGHT;
+            int barHeight = Math.max(16, availableHeight / entries.size() - 8);
+            int y = PADDING;
+
+            for (int i = 0; i < entries.size(); i++) {
+                Map.Entry<String, Integer> entry = entries.get(i);
+                int barWidth = (int) ((availableWidth - 16) * (entry.getValue() / (double) maxValue));
+                g2.setColor(TEXT_MUTED);
+                g2.drawString(entry.getKey(), PADDING, y + barHeight - 4);
+
+                g2.setColor(barColors.get(i % barColors.size()));
+                g2.fillRoundRect(PADDING + LABEL_WIDTH, y, barWidth, barHeight, 10, 10);
+
+                g2.setColor(TEXT_DARK);
+                g2.drawString(formatNumber(entry.getValue()), PADDING + LABEL_WIDTH + barWidth + 8,
+                        y + barHeight - 4);
+                y += barHeight + 8;
+            }
+
+            g2.setColor(CARD_BORDER);
+            g2.drawLine(PADDING, getHeight() - PADDING, getWidth() - PADDING, getHeight() - PADDING);
+            g2.dispose();
         }
     }
 }
