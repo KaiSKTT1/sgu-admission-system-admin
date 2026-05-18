@@ -1,5 +1,6 @@
 package com.example.KaiST.sgu_admission_system.gui.dialogs;
 
+import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemThiXetTuyen;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -74,7 +75,7 @@ public class DiemThiXetTuyenDialog extends JDialog {
         String[][] fieldsData = new String[][] {
                 { "CCCD", "cccd", score.getCccd() },
                 { "Số báo danh", "sobaodanh", score.getSoBaoDanh() },
-                { "Phương thức", "phuongthuc", score.getPhuongThuc() },
+                { "Phương thức", "phuongthuc", phuongThucText(score.getPhuongThuc()) },
                 { "TO", "to", valueOf(score.getTo()) },
                 { "LI", "li", valueOf(score.getLi()) },
                 { "HO", "ho", valueOf(score.getHo()) },
@@ -152,7 +153,7 @@ public class DiemThiXetTuyenDialog extends JDialog {
     private void onSave() {
         score.setCccd(fields.get("cccd").getText().trim());
         score.setSoBaoDanh(fields.get("sobaodanh").getText().trim());
-        score.setPhuongThuc(fields.get("phuongthuc").getText().trim());
+        score.setPhuongThuc(PhuongThuc.fromText(fields.get("phuongthuc").getText().trim()));
         score.setTo(parseBigDecimal(fields.get("to").getText().trim()));
         score.setLi(parseBigDecimal(fields.get("li").getText().trim()));
         score.setHo(parseBigDecimal(fields.get("ho").getText().trim()));
@@ -200,6 +201,10 @@ public class DiemThiXetTuyenDialog extends JDialog {
 
     private String valueOf(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private String phuongThucText(PhuongThuc method) {
+        return method == null ? "" : method.getLabel();
     }
 
     private java.math.BigDecimal parseBigDecimal(String value) {

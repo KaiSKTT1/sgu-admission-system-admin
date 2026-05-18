@@ -1,6 +1,7 @@
 package com.example.KaiST.sgu_admission_system.gui.controllers;
 
 import com.example.KaiST.sgu_admission_system.bus.XtDiemThiXetTuyenBus;
+import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemThiXetTuyen;
 import com.example.KaiST.sgu_admission_system.gui.dialogs.DiemThiXetTuyenDialog;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemThiXetTuyenView;
@@ -152,7 +153,7 @@ public class DiemThiXetTuyenController {
 
             hasData |= applyValue(row, score::setCccd, "cccd");
             hasData |= applyValue(row, score::setSoBaoDanh, "sobaodanh", "sbd");
-            hasData |= applyValue(row, score::setPhuongThuc, "d_phuongthuc", "phuongthuc", "phuong thuc");
+            hasData |= applyPhuongThuc(row, score);
 
             hasData |= applyDecimal(row, score::setTo, "to");
             hasData |= applyDecimal(row, score::setLi, "li");
@@ -202,7 +203,7 @@ public class DiemThiXetTuyenController {
                     stt,
                     safeText(score.getCccd()),
                     safeText(score.getSoBaoDanh()),
-                    safeText(score.getPhuongThuc()),
+                    phuongThucText(score.getPhuongThuc()),
                     safeText(score.getTo()),
                     safeText(score.getLi()),
                     ""
@@ -227,7 +228,8 @@ public class DiemThiXetTuyenController {
 
     private boolean containsKeyword(XtDiemThiXetTuyen score, String keyword) {
         return containsIgnoreCase(score.getCccd(), keyword)
-                || containsIgnoreCase(score.getSoBaoDanh(), keyword);
+                || containsIgnoreCase(score.getSoBaoDanh(), keyword)
+                || containsIgnoreCase(phuongThucText(score.getPhuongThuc()), keyword);
     }
 
     private boolean containsIgnoreCase(String value, String keyword) {
@@ -251,6 +253,16 @@ public class DiemThiXetTuyenController {
             return false;
         }
         setter.accept(value);
+        return true;
+    }
+
+    private boolean applyPhuongThuc(Map<String, String> row, XtDiemThiXetTuyen score) {
+        String value = getValue(row, "d_phuongthuc", "phuongthuc", "phuong thuc");
+        PhuongThuc method = PhuongThuc.fromText(value);
+        if (method == null) {
+            return false;
+        }
+        score.setPhuongThuc(method);
         return true;
     }
 
@@ -296,5 +308,9 @@ public class DiemThiXetTuyenController {
 
     private String safeText(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private String phuongThucText(PhuongThuc method) {
+        return method == null ? "" : method.getLabel();
     }
 }

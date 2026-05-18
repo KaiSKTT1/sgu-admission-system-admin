@@ -1,6 +1,9 @@
 package com.example.KaiST.sgu_admission_system.entity;
 
+import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
+import com.example.KaiST.sgu_admission_system.commen.PhuongThucConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,7 +34,8 @@ public class XtDiemThiXetTuyen {
     private String soBaoDanh;
 
     @Column(name = "d_phuongthuc")
-    private String phuongThuc;
+    @Convert(converter = PhuongThucConverter.class)
+    private PhuongThuc phuongThuc;
 
     @Column(name = "`TO`")
     private BigDecimal to;

@@ -1,5 +1,6 @@
 package com.example.KaiST.sgu_admission_system.gui.dialogs;
 
+import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemThiXetTuyen;
 import com.example.KaiST.sgu_admission_system.entity.XtThiSinhXetTuyen25;
 import java.awt.BorderLayout;
@@ -10,7 +11,6 @@ import java.awt.Window;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -43,12 +43,12 @@ public class ThiSinhScoreDialog extends JDialog {
             List<XtDiemThiXetTuyen> other = new ArrayList<>();
 
             for (XtDiemThiXetTuyen score : scores) {
-                String method = safeText(score.getPhuongThuc()).toUpperCase(Locale.ROOT);
-                if (method.contains("THPT")) {
+                PhuongThuc method = score.getPhuongThuc();
+                if (method == PhuongThuc.THPT) {
                     thpt.add(score);
-                } else if (method.contains("DGNL")) {
+                } else if (method == PhuongThuc.DGNL) {
                     dgnl.add(score);
-                } else if (method.contains("VSAT")) {
+                } else if (method == PhuongThuc.VSAT) {
                     vsat.add(score);
                 } else {
                     other.add(score);
@@ -93,7 +93,7 @@ public class ThiSinhScoreDialog extends JDialog {
             gbc.weightx = 1;
 
             int row = 0;
-            row = addRow(panel, gbc, row, "Phương thức", safeText(score.getPhuongThuc()));
+            row = addRow(panel, gbc, row, "Phương thức", phuongThucText(score.getPhuongThuc()));
             row = addRow(panel, gbc, row, "TO", valueOf(score.getTo()));
             row = addRow(panel, gbc, row, "LI", valueOf(score.getLi()));
             row = addRow(panel, gbc, row, "HO", valueOf(score.getHo()));
@@ -142,6 +142,10 @@ public class ThiSinhScoreDialog extends JDialog {
 
     private String safeText(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String phuongThucText(PhuongThuc method) {
+        return method == null ? "" : method.getLabel();
     }
 
     private String valueOf(BigDecimal value) {

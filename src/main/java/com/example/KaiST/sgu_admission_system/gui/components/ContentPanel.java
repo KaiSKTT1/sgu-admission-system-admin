@@ -6,9 +6,13 @@ import com.example.KaiST.sgu_admission_system.bus.XtDiemThiXetTuyenBus;
 import com.example.KaiST.sgu_admission_system.bus.XtDiemCongXetTuyenBus;
 import com.example.KaiST.sgu_admission_system.bus.XtBangQuyDoiBus;
 import com.example.KaiST.sgu_admission_system.bus.XtToHopMonThiBus;
+import com.example.KaiST.sgu_admission_system.bus.XtNganhToHopBus;
+import com.example.KaiST.sgu_admission_system.bus.XtNguyenVongXetTuyenBus;
+import com.example.KaiST.sgu_admission_system.bus.XetTuyenBus;
 import com.example.KaiST.sgu_admission_system.gui.controllers.CandidateController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DiemThiXetTuyenController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DiemCongXetTuyenController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.DiemXetTuyenController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.BangQuyDoiController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
@@ -16,6 +20,7 @@ import com.example.KaiST.sgu_admission_system.gui.controllers.ToHopMonThiControl
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemThiXetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemCongXetTuyenView;
+import com.example.KaiST.sgu_admission_system.gui.views.DiemXetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.views.BangQuyDoiView;
 import com.example.KaiST.sgu_admission_system.gui.views.DashboardView;
 import com.example.KaiST.sgu_admission_system.gui.views.NganhView;
@@ -29,6 +34,7 @@ public class ContentPanel extends JPanel {
     public static final String VIEW_CANDIDATE = "candidate";
     public static final String VIEW_DIEMTHI = "diemthi";
     public static final String VIEW_DIEMCONG = "diemcong";
+    public static final String VIEW_DIEMXET = "diemxet";
     public static final String VIEW_QUYDOI = "quydoi";
     public static final String VIEW_NGANH = "nganh";
     public static final String VIEW_TOHOP = "tohop";
@@ -70,6 +76,20 @@ public class ContentPanel extends JPanel {
         diemCongView.setController(diemCongController);
         diemCongController.init();
         add(diemCongView, VIEW_DIEMCONG);
+
+        DiemXetTuyenView diemXetView = new DiemXetTuyenView();
+        XetTuyenBus xetTuyenBus = new XetTuyenBus(
+                new XtThiSinhXetTuyen25Bus(),
+                new XtNguyenVongXetTuyenBus(),
+                new XtDiemThiXetTuyenBus(),
+                new XtDiemCongXetTuyenBus(),
+                new XtBangQuyDoiBus(),
+                new XtNganhBus(),
+                new XtNganhToHopBus());
+        DiemXetTuyenController diemXetController = new DiemXetTuyenController(diemXetView, xetTuyenBus);
+        diemXetView.setController(diemXetController);
+        diemXetController.init();
+        add(diemXetView, VIEW_DIEMXET);
 
         BangQuyDoiView quyDoiView = new BangQuyDoiView();
         BangQuyDoiController quyDoiController = new BangQuyDoiController(

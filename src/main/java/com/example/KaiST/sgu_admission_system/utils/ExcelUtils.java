@@ -2,6 +2,7 @@ package com.example.KaiST.sgu_admission_system.utils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +14,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public final class ExcelUtils {
     private ExcelUtils() {
@@ -122,5 +124,37 @@ public final class ExcelUtils {
                 .replaceAll("\\p{M}+", "")
                 .toLowerCase(Locale.ROOT);
         return normalized.replaceAll("[^a-z0-9]", "");
+    }
+
+    public static void writeRows(File file, List<String> headers, List<List<Object>> rows) throws Exception {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Data");
+            int rowIndex = 0;
+
+            if (headers != null && !headers.isEmpty()) {
+                Row headerRow = sheet.createRow(rowIndex++);
+                for (int i = 0; i < headers.size(); i++) {
+                    headerRow.createCell(i).setCellValue(headers.get(i));
+                }
+            }
+
+            if (rows != null) {
+                for (List<Object> row : rows) {
+                    Row dataRow = sheet.createRow(rowIndex++);
+                    for (int i = 0; i < row.size(); i++) {
+                        Object value = row.get(i);
+                        dataRow.createCell(i).setCellValue(value == null ? "" : value.toString());
+                    }
+                }
+            }
+
+            for (int i = 0; headers != null && i < headers.size(); i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            try (FileOutputStream outputStream = new FileOutputStream(file)) {
+                workbook.write(outputStream);
+            }
+        }
     }
 }
