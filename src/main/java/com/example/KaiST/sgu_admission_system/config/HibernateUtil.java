@@ -8,6 +8,7 @@ import com.example.KaiST.sgu_admission_system.entity.XtNguyenVongXetTuyen;
 import com.example.KaiST.sgu_admission_system.entity.XtBangQuyDoi;
 import com.example.KaiST.sgu_admission_system.entity.XtNganhToHop;
 import com.example.KaiST.sgu_admission_system.entity.XtToHopMonThi;
+import com.example.KaiST.sgu_admission_system.entity.XtUser;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -61,6 +62,7 @@ public final class HibernateUtil {
         configuration.addAnnotatedClass(XtDiemCongXetTuyen.class);
         configuration.addAnnotatedClass(XtNguyenVongXetTuyen.class);
         configuration.addAnnotatedClass(XtBangQuyDoi.class);
+        configuration.addAnnotatedClass(XtUser.class);
 
         return configuration.buildSessionFactory();
     }
