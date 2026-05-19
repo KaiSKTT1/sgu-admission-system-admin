@@ -1,8 +1,8 @@
 package com.example.KaiST.sgu_admission_system.gui.views;
 
 import com.example.KaiST.sgu_admission_system.gui.components.HorizontalButtonPanel;
+import com.example.KaiST.sgu_admission_system.gui.components.NganhToHopSearchPanel;
 import com.example.KaiST.sgu_admission_system.gui.components.PaginationPanel;
-import com.example.KaiST.sgu_admission_system.gui.components.SearchPanel;
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhToHopController;
 import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.BorderLayout;
@@ -34,7 +34,7 @@ public class NganhToHopView extends JPanel {
     private static final int ICON_SIZE = 18;
     private static final int ACTION_COLUMN_INDEX = 10;
 
-    private final SearchPanel searchPanel;
+    private final NganhToHopSearchPanel searchPanel;
     private final DefaultTableModel tableModel;
     private final JTable table;
     private final PaginationPanel paginationPanel;
@@ -85,8 +85,8 @@ public class NganhToHopView extends JPanel {
         add(paginationPanel, BorderLayout.SOUTH);
     }
 
-    private SearchPanel createSearchPanel() {
-        return new SearchPanel("Tìm ngành-tổ hợp:", 22, () -> runWithController(NganhToHopController::onSearch));
+    private NganhToHopSearchPanel createSearchPanel() {
+        return new NganhToHopSearchPanel("Tìm ngành-tổ hợp:", 18, () -> runWithController(NganhToHopController::onSearch));
     }
 
     private JPanel createActionPanel() {
@@ -119,6 +119,22 @@ public class NganhToHopView extends JPanel {
 
     public String getSearchKeyword() {
         return searchPanel.getKeyword();
+    }
+
+    public boolean isSearchByMaNganh() {
+        return searchPanel.isSearchByMaNganh();
+    }
+
+    public boolean isSearchByTenNganh() {
+        return searchPanel.isSearchByTenNganh();
+    }
+
+    public boolean isSearchByMaToHop() {
+        return searchPanel.isSearchByMaToHop();
+    }
+
+    public boolean isSearchByMon() {
+        return searchPanel.isSearchByMon();
     }
 
     public int getPageSize() {
