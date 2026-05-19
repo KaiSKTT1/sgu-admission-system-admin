@@ -284,6 +284,7 @@ public class ToHopMonThiController {
             case "VA" -> "Văn";
             case "GD" -> "GDCD";
             case "DI" -> "Địa lý";
+            case "TI" -> "Tin học";
             case "KTPL" -> "Kinh tế - Pháp luật";
             case "CNCN" -> "Công nghệ Chăn nuôi";
             case "LI" -> "Vật lý";
