@@ -7,9 +7,11 @@ import com.example.KaiST.sgu_admission_system.gui.views.ToHopMonThiView;
 import com.example.KaiST.sgu_admission_system.utils.ExcelUtils;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class ToHopMonThiController {
     private final ToHopMonThiView view;
@@ -119,32 +121,46 @@ public class ToHopMonThiController {
         List<Map<String, String>> rows;
         try {
             rows = ExcelUtils.readRows(file, List.of(
-                    "matohop",
-                    "ma to hop",
-                    "tentohop",
-                    "ten to hop",
-                    "mon1",
-                    "mon2",
-                    "mon3"));
+                    "matohop", "ma_to_hop", "ma to hop", "ma",
+                    "tentohop", "ten_to_hop", "ten to hop", "ten",
+                    "mon1", "mon2", "mon3"));
         } catch (Exception ex) {
             view.showError("Không thể đọc file Excel: " + ex.getMessage());
             return;
         }
 
         List<XtToHopMonThi> imported = new ArrayList<>();
+        Set<String> processedMaToHop = new HashSet<>();
+        
         for (Map<String, String> row : rows) {
-            String maToHop = getValue(row, "matohop", "ma_to_hop", "ma to hop", "ma");
+            String maToHopRaw = getValue(row, "matohop", "ma_to_hop", "ma to hop", "ma");
+            if (maToHopRaw == null || maToHopRaw.isBlank()) {
+                continue;
+            }
+
+            // Tách maToHop từ định dạng "B03(TO-3, VA-3, SI-1)"
+            String maToHop = extractMaToHop(maToHopRaw);
             if (maToHop == null || maToHop.isBlank()) {
                 continue;
             }
 
-            String tenToHop = getValue(row, "tentohop", "ten_to_hop", "ten to hop", "ten");
-            String mon1 = getValue(row, "mon1", "mon 1", "mon_1");
-            String mon2 = getValue(row, "mon2", "mon 2", "mon_2");
-            String mon3 = getValue(row, "mon3", "mon 3", "mon_3");
+            // Kiểm tra mã tổ hợp đã được xử lý chưa
+            if (processedMaToHop.contains(maToHop)) {
+                continue;
+            }
+            processedMaToHop.add(maToHop);
 
-            XtToHopMonThi toHop = bus.findByMaToHop(maToHop).orElse(null);
-            if (toHop == null) {
+            // Parse mon1, mon2, mon3 từ định dạng
+            List<String> mons = parseMonFromFormat(maToHopRaw);
+            String mon1 = mons.size() > 0 ? mons.get(0) : null;
+            String mon2 = mons.size() > 1 ? mons.get(1) : null;
+            String mon3 = mons.size() > 2 ? mons.get(2) : null;
+
+            // Tạo tenToHop từ các môn
+            String tenToHop = buildTenToHop(mon1, mon2, mon3);
+
+            XtToHopMonThi existing = bus.findByMaToHop(maToHop).orElse(null);
+            if (existing == null) {
                 XtToHopMonThi newToHop = new XtToHopMonThi();
                 newToHop.setMaToHop(maToHop);
                 newToHop.setTenToHop(tenToHop);
@@ -156,13 +172,13 @@ public class ToHopMonThiController {
             }
 
             boolean updated = false;
-            updated |= setIfBlank(toHop.getTenToHop(), toHop::setTenToHop, tenToHop);
-            updated |= setIfBlank(toHop.getMon1(), toHop::setMon1, mon1);
-            updated |= setIfBlank(toHop.getMon2(), toHop::setMon2, mon2);
-            updated |= setIfBlank(toHop.getMon3(), toHop::setMon3, mon3);
+            updated |= setIfBlank(existing.getTenToHop(), existing::setTenToHop, tenToHop);
+            updated |= setIfBlank(existing.getMon1(), existing::setMon1, mon1);
+            updated |= setIfBlank(existing.getMon2(), existing::setMon2, mon2);
+            updated |= setIfBlank(existing.getMon3(), existing::setMon3, mon3);
 
             if (updated) {
-                bus.save(toHop);
+                bus.save(existing);
             }
         }
 
@@ -174,6 +190,116 @@ public class ToHopMonThiController {
         bus.saveAll(imported);
         onRefresh();
         view.showInfo("Đã import " + imported.size() + " tổ hợp.");
+    }
+
+    /**
+     * Tách maToHop từ định dạng "B03(TO-3, VA-3, SI-1)" → "B03"
+     */
+    private String extractMaToHop(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        int parenIndex = raw.indexOf('(');
+        if (parenIndex > 0) {
+            return raw.substring(0, parenIndex).trim();
+        }
+        return raw.trim();
+    }
+
+    /**
+     * Parse các môn học từ định dạng "(TO-3, VA-3, SI-1)" → [TO, VA, SI]
+     * Chỉ lấy ký tự không phải số
+     */
+    private List<String> parseMonFromFormat(String raw) {
+        List<String> mons = new ArrayList<>();
+        if (raw == null || raw.isBlank()) {
+            return mons;
+        }
+
+        int startIndex = raw.indexOf('(');
+        int endIndex = raw.indexOf(')');
+        if (startIndex < 0 || endIndex < 0 || startIndex >= endIndex) {
+            return mons;
+        }
+
+        String monPart = raw.substring(startIndex + 1, endIndex).trim();
+        String[] monItems = monPart.split(",");
+
+        for (String item : monItems) {
+            String monCode = extractMonCode(item.trim());
+            if (monCode != null && !monCode.isBlank()) {
+                mons.add(monCode);
+            }
+        }
+
+        return mons;
+    }
+
+    /**
+     * Lấy ký tự không phải số từ "TO-3" → "TO"
+     */
+    private String extractMonCode(String item) {
+        if (item == null || item.isBlank()) {
+            return null;
+        }
+        StringBuilder result = new StringBuilder();
+        for (char c : item.toCharArray()) {
+            if (!Character.isDigit(c) && c != '-') {
+                result.append(c);
+            }
+        }
+        return result.toString();
+    }
+
+    /**
+     * Map mã môn sang tên viết tắt và tạo tenToHop
+     * Ví dụ: TO, VA, SI → "Toán, Văn, Sinh"
+     */
+    private String buildTenToHop(String mon1, String mon2, String mon3) {
+        List<String> names = new ArrayList<>();
+        
+        if (mon1 != null && !mon1.isBlank()) {
+            names.add(mapMonToName(mon1));
+        }
+        if (mon2 != null && !mon2.isBlank()) {
+            names.add(mapMonToName(mon2));
+        }
+        if (mon3 != null && !mon3.isBlank()) {
+            names.add(mapMonToName(mon3));
+        }
+
+        return String.join(", ", names);
+    }
+
+    /**
+     * Map mã môn học sang tên đầy đủ
+     */
+    private String mapMonToName(String monCode) {
+        if (monCode == null) {
+            return "";
+        }
+
+        return switch (monCode.toUpperCase(Locale.ROOT)) {
+            case "TO" -> "Toán";
+            case "HO" -> "Hóa";
+            case "SI" -> "Sinh";
+            case "VA" -> "Văn";
+            case "GD" -> "GDCD";
+            case "DI" -> "Địa lý";
+            case "KTPL" -> "Kinh tế - Pháp luật";
+            case "CNCN" -> "Công nghệ Chăn nuôi";
+            case "LI" -> "Vật lý";
+            case "SU" -> "Lịch Sử";
+            case "CNNN" -> "Công nghệ Nông Nghiệp";
+            case "N1" -> "Tiếng Anh";
+            case "NK1" -> "Kể chuyện - Đọc diễn cảm";
+            case "NK2" -> "Hát - Nhạc";
+            case "NK3" -> "Hình họa";
+            case "NK4" -> "Trang Trí";
+            case "NK5" -> "Hát - Nhạc cụ";
+            case "NK6" -> "Xướng âm - Thẩm âm";
+            default -> monCode;
+        };
     }
 
     private void updateTable() {

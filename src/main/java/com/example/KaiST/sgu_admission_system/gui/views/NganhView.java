@@ -153,6 +153,17 @@ public class NganhView extends JPanel {
         return chooser.getSelectedFile();
     }
 
+    public File[] chooseMultipleExcelFiles() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new FileNameExtensionFilter("Excel (*.xlsx, *.xls)", "xlsx", "xls"));
+        chooser.setMultiSelectionEnabled(true);
+        int result = chooser.showOpenDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return null;
+        }
+        return chooser.getSelectedFiles();
+    }
+
     public void showInfo(String message) {
         javax.swing.JOptionPane.showMessageDialog(this, message, "Thông báo",
                 javax.swing.JOptionPane.INFORMATION_MESSAGE);
