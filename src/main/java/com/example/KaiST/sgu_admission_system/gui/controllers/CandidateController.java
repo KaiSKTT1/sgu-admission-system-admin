@@ -7,13 +7,12 @@ import com.example.KaiST.sgu_admission_system.entity.XtThiSinhXetTuyen25;
 import com.example.KaiST.sgu_admission_system.gui.dialogs.ThiSinhScoreDialog;
 import com.example.KaiST.sgu_admission_system.gui.dialogs.ThiSinhXetTuyenDialog;
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
-import com.example.KaiST.sgu_admission_system.utils.ExcelUtils;
+import com.example.KaiST.sgu_admission_system.utils.CandidateImporter;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.function.Consumer;
 
 public class CandidateController {
     private final CandidateView view;
@@ -148,44 +147,37 @@ public class CandidateController {
             return;
         }
 
-        List<Map<String, String>> rows;
-        try {
-            rows = ExcelUtils.readRows(file);
-        } catch (Exception ex) {
-            view.showError("Không thể đọc file Excel: " + ex.getMessage());
-            return;
-        }
+        // Chạy import trên thread riêng để không đóng băng UI
+        view.setImportButtonEnabled(false);
+        new Thread(() -> {
+            try {
+                CandidateImporter.ImportResult result = CandidateImporter.importFromExcel(file.getAbsolutePath());
 
-        List<XtThiSinhXetTuyen25> imported = new ArrayList<>();
-        for (Map<String, String> row : rows) {
-            XtThiSinhXetTuyen25 candidate = new XtThiSinhXetTuyen25();
-            boolean hasData = false;
-
-            hasData |= applyValue(row, candidate::setCccd, "cccd");
-            hasData |= applyValue(row, candidate::setSoBaoDanh, "sobaodanh", "sbd");
-            hasData |= applyHoTen(row, candidate);
-            hasData |= applyValue(row, candidate::setNgaySinh, "ngaysinh");
-            hasData |= applyValue(row, candidate::setGioiTinh, "gioitinh");
-            hasData |= applyValue(row, candidate::setDienThoai, "dienthoai", "sodienthoai");
-            hasData |= applyValue(row, candidate::setEmail, "email");
-            hasData |= applyValue(row, candidate::setNoiSinh, "noisinh");
-            hasData |= applyValue(row, candidate::setDoiTuong, "doituong", "dtut", "doituonguutien");
-            hasData |= applyValue(row, candidate::setKhuVuc, "khuvuc", "kvut", "khuvucuutien");
-
-            if (hasData) {
-                imported.add(candidate);
+                // Cập nhật UI phải chạy trên EDT
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    onRefresh();
+                    view.setImportButtonEnabled(true);
+                    view.showInfo(String.format(
+                            "Import hoàn thành!\n\n" +
+                                    "✔ Thành công : %d\n" +
+                                    "⚠ Bỏ qua trùng: %d\n" +
+                                    "✘ Lỗi        : %d\n\n" +
+                                    "Chi tiết xem tại:\n%s",
+                            result.totalSuccess,
+                            result.totalSkipDuplicate,
+                            result.totalSkipError,
+                            result.logPath));
+                });
+            } catch (Exception ex) {
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    view.setImportButtonEnabled(true);
+                    view.showError("Import thất bại: " + ex.getMessage());
+                });
             }
-        }
-
-        if (imported.isEmpty()) {
-            view.showInfo("Không có dữ liệu hợp lệ để import.");
-            return;
-        }
-
-        bus.saveAll(imported);
-        onRefresh();
-        view.showInfo("Đã import " + imported.size() + " thí sinh.");
+        }, "import-thread").start();
     }
+
+    // ── Phần còn lại giữ nguyên ───────────────────────────────────────────────
 
     private void updateTable() {
         int pageSize = view.getPageSize();
@@ -212,11 +204,6 @@ public class CandidateController {
 
         view.setTableRows(rows);
         view.updatePagination(currentPage, totalPages);
-    }
-
-    private XtThiSinhXetTuyen25 getSelectedCandidate() {
-        int selectedRow = view.getSelectedRow();
-        return getCandidateAtRow(selectedRow);
     }
 
     private XtThiSinhXetTuyen25 getCandidateAtRow(int row) {
@@ -246,41 +233,5 @@ public class CandidateController {
 
     private boolean containsIgnoreCase(String value, String keyword) {
         return value != null && value.toLowerCase(Locale.ROOT).contains(keyword);
-    }
-
-    private boolean applyValue(Map<String, String> row, Consumer<String> setter, String... headers) {
-        String value = getValue(row, headers);
-        if (value == null || value.isEmpty()) {
-            return false;
-        }
-        setter.accept(value);
-        return true;
-    }
-
-    private boolean applyHoTen(Map<String, String> row, XtThiSinhXetTuyen25 candidate) {
-        boolean updated = false;
-        String hoTen = getValue(row, "hoten", "hovaten");
-        if (hoTen != null && !hoTen.isEmpty()) {
-            candidate.setTen(hoTen.trim().replaceAll("\\s+", " "));
-            updated = true;
-        }
-
-        String ten = getValue(row, "ten");
-        if (ten != null && !ten.isEmpty()) {
-            candidate.setTen(ten);
-            updated = true;
-        }
-        return updated;
-    }
-
-    private String getValue(Map<String, String> row, String... headers) {
-        for (String header : headers) {
-            String normalized = ExcelUtils.normalizeHeader(header);
-            String value = row.get(normalized);
-            if (value != null && !value.isBlank()) {
-                return value.trim();
-            }
-        }
-        return null;
     }
 }

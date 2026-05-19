@@ -40,6 +40,7 @@ public class CandidateView extends JPanel {
     private final JTable table;
     private final PaginationPanel paginationPanel;
     private CandidateController controller;
+    private JButton importButton;
 
     public CandidateView() {
         setLayout(new BorderLayout(12, 12));
@@ -87,7 +88,7 @@ public class CandidateView extends JPanel {
     }
 
     private JPanel createActionPanel() {
-        JButton importButton = new JButton("Import");
+        importButton = new JButton("Import"); // <-- đổi từ JButton importButton = ...
         JButton refreshButton = new JButton("Refresh");
         JButton addButton = new JButton();
         addButton.setToolTipText("Thêm thí sinh");
@@ -98,6 +99,12 @@ public class CandidateView extends JPanel {
         addButton.addActionListener(event -> runWithController(CandidateController::onAdd));
 
         return new HorizontalButtonPanel(FlowLayout.RIGHT, 8, importButton, refreshButton, addButton);
+    }
+
+    public void setImportButtonEnabled(boolean enabled) {
+        if (importButton != null) {
+            importButton.setEnabled(enabled);
+        }
     }
 
     private void setupActionColumns() {

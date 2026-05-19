@@ -61,4 +61,41 @@ public class XtThiSinhXetTuyen25Dao {
             throw ex;
         }
     }
+
+    public XtThiSinhXetTuyen25 insert(XtThiSinhXetTuyen25 entity) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            session.persist(entity);
+            transaction.commit();
+            return entity;
+        } catch (Exception ex) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw ex;
+        }
+    }
+
+    public List<XtThiSinhXetTuyen25> insertAll(List<XtThiSinhXetTuyen25> entities) {
+        final int BATCH_SIZE = 50;
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            for (int i = 0; i < entities.size(); i++) {
+                session.persist(entities.get(i));
+                if ((i + 1) % BATCH_SIZE == 0) {
+                    session.flush();
+                    session.clear();
+                }
+            }
+            transaction.commit();
+            return entities;
+        } catch (Exception ex) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw ex;
+        }
+    }
 }

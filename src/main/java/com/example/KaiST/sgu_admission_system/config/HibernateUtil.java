@@ -54,6 +54,11 @@ public final class HibernateUtil {
         configuration.setProperty("hibernate.show_sql", dbShowSql);
         configuration.setProperty("hibernate.current_session_context_class", "thread");
 
+        configuration.setProperty("hibernate.jdbc.batch_size", "50");
+        configuration.setProperty("hibernate.order_inserts", "true");
+        configuration.setProperty("hibernate.order_updates", "true");
+        configuration.setProperty("hibernate.jdbc.batch_versioned_data", "true");
+
         configuration.addAnnotatedClass(XtThiSinhXetTuyen25.class);
         configuration.addAnnotatedClass(XtNganh.class);
         configuration.addAnnotatedClass(XtToHopMonThi.class);
@@ -68,13 +73,19 @@ public final class HibernateUtil {
     }
 
     private static String getEnv(String key, String fallback) {
-        String fileValue = FILE_ENV.get(key);
-        if (fileValue != null && !fileValue.isBlank()) {
-            return fileValue;
+        // Nếu file .env CÓ CHỨA key (kể cả gán bằng rỗng như DB_PASSWORD=) thì lấy luôn
+        // giá trị đó
+        if (FILE_ENV.containsKey(key)) {
+            return FILE_ENV.get(key);
         }
-        return Optional.ofNullable(System.getenv(key))
-                .filter(value -> !value.isBlank())
-                .orElse(fallback);
+
+        // Nếu file .env không có key đó mới tìm đến hệ thống hoặc fallback
+        String envValue = System.getenv(key);
+        if (envValue != null) {
+            return envValue;
+        }
+
+        return fallback;
     }
 
     private static Map<String, String> loadEnvFile() {
