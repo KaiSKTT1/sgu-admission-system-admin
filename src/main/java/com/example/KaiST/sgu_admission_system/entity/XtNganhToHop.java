@@ -54,28 +54,28 @@ public class XtNganhToHop {
     @Column(name = "N1_FLAG")
     private Boolean n1;
 
-    @Column(name = "TO")
+    @Column(name = "`TO`")
     private Boolean to;
 
-    @Column(name = "LI")
+    @Column(name = "`LI`")
     private Boolean li;
 
-    @Column(name = "HO")
+    @Column(name = "`HO`")
     private Boolean ho;
 
-    @Column(name = "SI")
+    @Column(name = "`SI`")
     private Boolean si;
 
-    @Column(name = "VA")
+    @Column(name = "`VA`")
     private Boolean va;
 
-    @Column(name = "SU")
+    @Column(name = "`SU`")
     private Boolean su;
 
-    @Column(name = "DI")
+    @Column(name = "`DI`")
     private Boolean di;
 
-    @Column(name = "TI")
+    @Column(name = "`TI`")
     private Boolean ti;
 
     @Column(name = "KHAC")

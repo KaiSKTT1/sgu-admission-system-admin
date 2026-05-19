@@ -41,6 +41,7 @@ public class SidebarPanel extends JPanel {
         add(createNavButton("Bảng quy đổi", ContentPanel.VIEW_QUYDOI));
         add(createNavButton("Ngành", ContentPanel.VIEW_NGANH));
         add(createNavButton("Tổ hợp môn thi", ContentPanel.VIEW_TOHOP));
+        add(createNavButton("Ngành - Tổ hợp", ContentPanel.VIEW_NGANH_TOHOP));
         add(createNavButton("Cài đặt", ContentPanel.VIEW_SETTINGS));
 
         setActive(ContentPanel.VIEW_DASHBOARD);

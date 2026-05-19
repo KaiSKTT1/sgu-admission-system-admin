@@ -17,6 +17,7 @@ import com.example.KaiST.sgu_admission_system.gui.controllers.DiemXetTuyenContro
 import com.example.KaiST.sgu_admission_system.gui.controllers.BangQuyDoiController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.NganhToHopController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.ToHopMonThiController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.UserController;
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
@@ -26,6 +27,7 @@ import com.example.KaiST.sgu_admission_system.gui.views.DiemXetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.views.BangQuyDoiView;
 import com.example.KaiST.sgu_admission_system.gui.views.DashboardView;
 import com.example.KaiST.sgu_admission_system.gui.views.NganhView;
+import com.example.KaiST.sgu_admission_system.gui.views.NganhToHopView;
 import com.example.KaiST.sgu_admission_system.gui.views.SettingsView;
 import com.example.KaiST.sgu_admission_system.gui.views.ToHopMonThiView;
 import com.example.KaiST.sgu_admission_system.gui.views.UserView;
@@ -43,6 +45,7 @@ public class ContentPanel extends JPanel {
         public static final String VIEW_QUYDOI = "quydoi";
         public static final String VIEW_NGANH = "nganh";
         public static final String VIEW_TOHOP = "tohop";
+        public static final String VIEW_NGANH_TOHOP = "nganh_tohop";
         public static final String VIEW_SETTINGS = "settings";
 
         private final CardLayout cardLayout;
@@ -123,6 +126,16 @@ public class ContentPanel extends JPanel {
                 toHopView.setController(toHopController);
                 toHopController.init();
                 add(toHopView, VIEW_TOHOP);
+
+                NganhToHopView nganhToHopView = new NganhToHopView();
+                NganhToHopController nganhToHopController = new NganhToHopController(
+                                nganhToHopView,
+                                new XtNganhToHopBus(),
+                                new XtNganhBus(),
+                                new XtToHopMonThiBus());
+                nganhToHopView.setController(nganhToHopController);
+                nganhToHopController.init();
+                add(nganhToHopView, VIEW_NGANH_TOHOP);
 
                 add(new SettingsView(), VIEW_SETTINGS);
 

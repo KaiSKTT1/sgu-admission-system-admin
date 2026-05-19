@@ -3,7 +3,7 @@ package com.example.KaiST.sgu_admission_system.gui.views;
 import com.example.KaiST.sgu_admission_system.gui.components.HorizontalButtonPanel;
 import com.example.KaiST.sgu_admission_system.gui.components.PaginationPanel;
 import com.example.KaiST.sgu_admission_system.gui.components.SearchPanel;
-import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.NganhToHopController;
 import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -17,31 +17,30 @@ import java.util.List;
 import javax.swing.AbstractCellEditor;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
-public class NganhView extends JPanel {
+public class NganhToHopView extends JPanel {
     private static final int PAGE_SIZE = 20;
     private static final int ICON_SIZE = 18;
-    private static final int ACTION_COLUMN_INDEX = 7;
+    private static final int ACTION_COLUMN_INDEX = 10;
 
     private final SearchPanel searchPanel;
     private final DefaultTableModel tableModel;
     private final JTable table;
     private final PaginationPanel paginationPanel;
-    private NganhController controller;
+    private NganhToHopController controller;
 
-    public NganhView() {
+    public NganhToHopView() {
         setLayout(new BorderLayout(12, 12));
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
@@ -54,12 +53,15 @@ public class NganhView extends JPanel {
 
         String[] columns = {
                 "STT",
-                "Tên ngành",
-                "Chỉ tiêu",
-                "Điểm sàn",
-                "Điểm trúng tuyển",
-                "Phương thức xét tuyển",
-                "Số thí sinh đăng ký NV",
+                "Mã ngành",
+                "Mã tổ hợp",
+                "Môn 1",
+                "HS Môn 1",
+                "Môn 2",
+                "HS Môn 2",
+                "Môn 3",
+                "HS Môn 3",
+                "TB Keys",
                 "Chức năng"
         };
         tableModel = new DefaultTableModel(columns, 0) {
@@ -84,48 +86,39 @@ public class NganhView extends JPanel {
     }
 
     private SearchPanel createSearchPanel() {
-        return new SearchPanel("Tìm ngành:", 22, () -> runWithController(NganhController::onSearch));
+        return new SearchPanel("Tìm ngành-tổ hợp:", 22, () -> runWithController(NganhToHopController::onSearch));
     }
 
     private JPanel createActionPanel() {
         JButton importButton = new JButton("Import");
         JButton refreshButton = new JButton("Refresh");
-        JButton addButton = new JButton();
-        addButton.setToolTipText("Thêm ngành");
-        addButton.setIcon(tintIcon(loadIcon("/icon/plus.png", ICON_SIZE), Color.BLACK));
 
-        importButton.addActionListener(event -> runWithController(NganhController::onImport));
-        refreshButton.addActionListener(event -> runWithController(NganhController::onRefresh));
-        addButton.addActionListener(event -> runWithController(NganhController::onAdd));
+        importButton.addActionListener(event -> runWithController(NganhToHopController::onImport));
+        refreshButton.addActionListener(event -> runWithController(NganhToHopController::onRefresh));
 
-        return new HorizontalButtonPanel(FlowLayout.RIGHT, 8, importButton, refreshButton, addButton);
+        return new HorizontalButtonPanel(FlowLayout.RIGHT, 8, importButton, refreshButton);
     }
 
     private void setupActionColumns() {
         ImageIcon eyeIcon = tintIcon(loadIcon("/icon/eye.png", ICON_SIZE, false), Color.BLACK);
-        ImageIcon editIcon = tintIcon(loadIcon("/icon/pencil.png", ICON_SIZE, false), Color.BLACK);
         ImageIcon deleteIcon = tintIcon(loadIcon("/icon/circle-x.png", ICON_SIZE, false), Color.BLACK);
 
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setCellRenderer(
-                new ActionCellRenderer(eyeIcon, editIcon, deleteIcon));
+                new ActionCellRenderer(eyeIcon, deleteIcon));
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setCellEditor(
-                new ActionCellEditor(eyeIcon, editIcon, deleteIcon));
-        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMaxWidth(140);
-        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMinWidth(140);
-        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setPreferredWidth(140);
+                new ActionCellEditor(eyeIcon, deleteIcon));
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMaxWidth(100);
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setMinWidth(100);
+        table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setPreferredWidth(100);
         table.getColumnModel().getColumn(ACTION_COLUMN_INDEX).setResizable(false);
     }
 
-    public void setController(NganhController controller) {
+    public void setController(NganhToHopController controller) {
         this.controller = controller;
     }
 
     public String getSearchKeyword() {
         return searchPanel.getKeyword();
-    }
-
-    public int getSelectedRow() {
-        return table.getSelectedRow();
     }
 
     public int getPageSize() {
@@ -141,27 +134,6 @@ public class NganhView extends JPanel {
 
     public void updatePagination(int currentPage, int totalPages) {
         paginationPanel.updatePageInfo(currentPage, totalPages);
-    }
-
-    public File chooseExcelFile() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setFileFilter(new FileNameExtensionFilter("Excel (*.xlsx, *.xls)", "xlsx", "xls"));
-        int result = chooser.showOpenDialog(this);
-        if (result != JFileChooser.APPROVE_OPTION) {
-            return null;
-        }
-        return chooser.getSelectedFile();
-    }
-
-    public File[] chooseMultipleExcelFiles() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setFileFilter(new FileNameExtensionFilter("Excel (*.xlsx, *.xls)", "xlsx", "xls"));
-        chooser.setMultiSelectionEnabled(true);
-        int result = chooser.showOpenDialog(this);
-        if (result != JFileChooser.APPROVE_OPTION) {
-            return null;
-        }
-        return chooser.getSelectedFiles();
     }
 
     public void showInfo(String message) {
@@ -187,7 +159,17 @@ public class NganhView extends JPanel {
         return SwingUtilities.getWindowAncestor(this);
     }
 
-    private void runWithController(java.util.function.Consumer<NganhController> action) {
+    public File chooseExcelFile() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new FileNameExtensionFilter("Excel (*.xlsx, *.xls)", "xlsx", "xls"));
+        int result = chooser.showOpenDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return null;
+        }
+        return chooser.getSelectedFile();
+    }
+
+    private void runWithController(java.util.function.Consumer<NganhToHopController> action) {
         if (controller != null) {
             action.accept(controller);
         }
@@ -217,10 +199,6 @@ public class NganhView extends JPanel {
         return new ImageIcon(image);
     }
 
-    private ImageIcon loadIcon(String path, int size) {
-        return loadIcon(path, size, false);
-    }
-
     private ImageIcon tintIcon(ImageIcon icon, Color color) {
         if (icon == null || color == null) {
             return icon;
@@ -247,19 +225,16 @@ public class NganhView extends JPanel {
 
     private final class ActionCellRenderer extends JPanel implements TableCellRenderer {
         private final JButton viewButton;
-        private final JButton editButton;
         private final JButton deleteButton;
 
-        private ActionCellRenderer(ImageIcon viewIcon, ImageIcon editIcon, ImageIcon deleteIcon) {
+        private ActionCellRenderer(ImageIcon viewIcon, ImageIcon deleteIcon) {
             setLayout(new FlowLayout(FlowLayout.CENTER, 6, 0));
             setOpaque(true);
 
             viewButton = createIconButton(viewIcon, "Xem chi tiết", "Xem");
-            editButton = createIconButton(editIcon, "Sửa", "Sửa");
             deleteButton = createIconButton(deleteIcon, "Xóa", "X");
 
             add(viewButton);
-            add(editButton);
             add(deleteButton);
         }
 
@@ -278,20 +253,17 @@ public class NganhView extends JPanel {
     private final class ActionCellEditor extends AbstractCellEditor implements TableCellEditor {
         private final JPanel panel;
 
-        private ActionCellEditor(ImageIcon viewIcon, ImageIcon editIcon, ImageIcon deleteIcon) {
+        private ActionCellEditor(ImageIcon viewIcon, ImageIcon deleteIcon) {
             panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
             panel.setOpaque(true);
 
             JButton viewButton = createIconButton(viewIcon, "Xem chi tiết", "Xem");
-            JButton editButton = createIconButton(editIcon, "Sửa", "Sửa");
             JButton deleteButton = createIconButton(deleteIcon, "Xóa", "X");
 
             viewButton.addActionListener(event -> handleActionRow(ActionType.VIEW));
-            editButton.addActionListener(event -> handleActionRow(ActionType.EDIT));
             deleteButton.addActionListener(event -> handleActionRow(ActionType.DELETE));
 
             panel.add(viewButton);
-            panel.add(editButton);
             panel.add(deleteButton);
         }
 
@@ -319,7 +291,6 @@ public class NganhView extends JPanel {
                 runWithController(ctrl -> {
                     switch (type) {
                         case VIEW -> ctrl.onViewRow(row);
-                        case EDIT -> ctrl.onEditRow(row);
                         case DELETE -> ctrl.onDeleteRow(row);
                     }
                 });
@@ -346,7 +317,6 @@ public class NganhView extends JPanel {
 
     private enum ActionType {
         VIEW,
-        EDIT,
         DELETE
     }
 }
