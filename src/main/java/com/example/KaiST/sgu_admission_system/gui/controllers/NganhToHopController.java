@@ -61,9 +61,14 @@ public class NganhToHopController {
         if (keyword.isEmpty()) {
             filteredData = new ArrayList<>(allData);
         } else {
+            boolean searchMaNganh = view.isSearchByMaNganh();
+            boolean searchTenNganh = view.isSearchByTenNganh();
+            boolean searchMaToHop = view.isSearchByMaToHop();
+            boolean searchMon = view.isSearchByMon();
+
             filteredData = new ArrayList<>();
             for (XtNganhToHop data : allData) {
-                if (containsKeyword(data, keyword)) {
+                if (matchesSearchCriteria(data, keyword, searchMaNganh, searchTenNganh, searchMaToHop, searchMon)) {
                     filteredData.add(data);
                 }
             }
@@ -368,6 +373,28 @@ public class NganhToHopController {
                 || containsIgnoreCase(data.getThMon1(), keyword)
                 || containsIgnoreCase(data.getThMon2(), keyword)
                 || containsIgnoreCase(data.getThMon3(), keyword);
+    }
+
+    private boolean matchesSearchCriteria(XtNganhToHop data, String keyword, 
+            boolean searchMaNganh, boolean searchTenNganh, boolean searchMaToHop, boolean searchMon) {
+        if (searchMaNganh && containsIgnoreCase(data.getMaNganh(), keyword)) {
+            return true;
+        }
+        if (searchTenNganh) {
+            XtNganh nganh = nganhMap.get(data.getMaNganh());
+            if (nganh != null && containsIgnoreCase(nganh.getTenNganh(), keyword)) {
+                return true;
+            }
+        }
+        if (searchMaToHop && containsIgnoreCase(data.getMaToHop(), keyword)) {
+            return true;
+        }
+        if (searchMon && (containsIgnoreCase(data.getThMon1(), keyword)
+                || containsIgnoreCase(data.getThMon2(), keyword)
+                || containsIgnoreCase(data.getThMon3(), keyword))) {
+            return true;
+        }
+        return false;
     }
 
     private boolean containsIgnoreCase(String value, String keyword) {
