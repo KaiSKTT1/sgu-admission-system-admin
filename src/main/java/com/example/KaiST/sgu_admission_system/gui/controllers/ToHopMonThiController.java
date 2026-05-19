@@ -208,7 +208,7 @@ public class ToHopMonThiController {
 
     /**
      * Parse các môn học từ định dạng "(TO-3, VA-3, SI-1)" → [TO, VA, SI]
-     * Chỉ lấy ký tự không phải số
+     * Lấy phần trước dấu "-", bao gồm cả ký tự số (ví dụ: NK1-1 → NK1)
      */
     private List<String> parseMonFromFormat(String raw) {
         List<String> mons = new ArrayList<>();
@@ -236,19 +236,17 @@ public class ToHopMonThiController {
     }
 
     /**
-     * Lấy ký tự không phải số từ "TO-3" → "TO"
+     * Lấy phần trước dấu "-" từ "TO-3" → "TO" hoặc từ "NK1-1" → "NK1"
      */
     private String extractMonCode(String item) {
         if (item == null || item.isBlank()) {
             return null;
         }
-        StringBuilder result = new StringBuilder();
-        for (char c : item.toCharArray()) {
-            if (!Character.isDigit(c) && c != '-') {
-                result.append(c);
-            }
+        int dashIndex = item.indexOf('-');
+        if (dashIndex > 0) {
+            return item.substring(0, dashIndex).trim();
         }
-        return result.toString();
+        return item.trim();
     }
 
     /**
