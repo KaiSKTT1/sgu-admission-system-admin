@@ -271,6 +271,10 @@ public class DiemCongXetTuyenController {
     }
 
     private String resolveNguyenVong(DiemCongXetTuyenRow record) {
+        String maNganh = record.getMaNganh();
+        if (maNganh != null && !maNganh.isBlank()) {
+            return maNganh.trim();
+        }
         String keys = record.getNvKeys();
         if (keys != null && !keys.isBlank()) {
             return keys.trim();

@@ -18,7 +18,7 @@ public class XtDiemCongXetTuyenDao {
 
     public List<DiemCongXetTuyenRow> findAllRows() {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String sql = "select dc.iddiemcong, dc.ts_cccd, nv.nv_keys, nv.nv_tt, th.tentohop, "
+            String sql = "select dc.iddiemcong, dc.ts_cccd, dc.manganh, nv.nv_keys, nv.nv_tt, th.tentohop, "
                     + "dc.matohop, dc.diemCC, dc.diemUtxt, dc.diemTong "
                     + "from xt_diemcongxetuyen dc "
                     + "left join xt_nguyenvongxettuyen nv "
@@ -32,14 +32,15 @@ public class XtDiemCongXetTuyenDao {
             for (Object[] row : rows) {
                 Integer id = row[0] == null ? null : ((Number) row[0]).intValue();
                 String cccd = row[1] == null ? null : row[1].toString();
-                String nvKeys = row[2] == null ? null : row[2].toString();
-                Integer nvTt = row[3] == null ? null : ((Number) row[3]).intValue();
-                String tenToHop = row[4] == null ? null : row[4].toString();
-                String maToHop = row[5] == null ? null : row[5].toString();
-                BigDecimal diemCc = toBigDecimal(row[6]);
-                BigDecimal diemUtxt = toBigDecimal(row[7]);
-                BigDecimal diemTong = toBigDecimal(row[8]);
-                result.add(new DiemCongXetTuyenRow(id, cccd, nvKeys, nvTt, tenToHop, maToHop,
+                String maNganh = row[2] == null ? null : row[2].toString();
+                String nvKeys = row[3] == null ? null : row[3].toString();
+                Integer nvTt = row[4] == null ? null : ((Number) row[4]).intValue();
+                String tenToHop = row[5] == null ? null : row[5].toString();
+                String maToHop = row[6] == null ? null : row[6].toString();
+                BigDecimal diemCc = toBigDecimal(row[7]);
+                BigDecimal diemUtxt = toBigDecimal(row[8]);
+                BigDecimal diemTong = toBigDecimal(row[9]);
+                result.add(new DiemCongXetTuyenRow(id, cccd, maNganh, nvKeys, nvTt, tenToHop, maToHop,
                         diemCc, diemUtxt, diemTong));
             }
             return result;
