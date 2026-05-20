@@ -209,21 +209,7 @@ public class DiemCongImporter {
                     XtNganh nganh = null;
                     if (tenNganh != null && !tenNganh.isBlank()) {
                         nganh = nganhMap.get(tenNganh);
-                        if (nganh == null) {
-                            // Tìm những ngành có tên bắt đầu giống để debug
-                            String prefix = tenNganh.substring(0, Math.min(3, tenNganh.length()));
-                            String similarNganh = nganhMap.keySet().stream()
-                                    .filter(k -> k.startsWith(prefix))
-                                    .findFirst()
-                                    .orElse("(không tìm thấy)");
-                            String errorMsg = String.format(
-                                    "[%s] Dòng %d | CCCD=%s | Tên gốc='%s' | Tìm kiếm='%s': Ngành không tồn tại (DB có %d ngành, gần nhất: %s)",
-                                    sheetName, rowIdx + 1, cccd, tenNganhOriginal, tenNganh, nganhMap.size(), similarNganh);
-                            logWriter.println(errorMsg);
-                            if (errorMessages.size() < 100) errorMessages.add(errorMsg);
-                            totalSkipError++;
-                            continue;
-                        }
+
                     } else if (maMon != null && !maMon.isBlank()) {
                         // Trường hợp chỉ có mã môn, không có tên ngành
                         // Bỏ qua hoặc xử lý đặc biệt
@@ -286,7 +272,14 @@ public class DiemCongImporter {
                             entity.setDiemTong(diemTong);
                             entity.setGhiChu("");
                             entity.setDcKeys("");
-
+                            logWriter.printf(
+                                "SAVE -> CCCD=%s | maToHop=%s | diemMonDatGiai=%s | diemThxt=%s | diemUtxt=%s%n",
+                                cccd,
+                                maToHop,
+                                diemMonDatGiai,
+                                diemThxtKhongMon,
+                                diemUtxt
+                            );
                             batch.add(entity);
                             totalSuccess++;
                         }
@@ -371,82 +364,118 @@ public class DiemCongImporter {
 
     // ── Tính điểm cộng dựa trên mã môn ──────────────────────────────────────
 
-    private static BigDecimal calculateDiemUtxt(String monDatGiai, String maToHop,
-            BigDecimal diemMonDatGiai, BigDecimal diemThxtKhongMon,
-            Map<String, List<String>> toHopMonMap, PrintWriter logWriter, int rowIdx, String cccd,
-            String sheetName) {
+    private static BigDecimal calculateDiemUtxt(
+        String monDatGiai,
+        String maToHop,
+        BigDecimal diemMonDatGiai,
+        BigDecimal diemThxtKhongMon,
+        Map<String, List<String>> toHopMonMap,
+        PrintWriter logWriter,
+        int rowIdx,
+        String cccd,
+        String sheetName) {
 
-        if (monDatGiai == null || monDatGiai.isBlank()) {
-            // Không có môn đạt giải → dùng điểm THXT không có môn
-            return diemThxtKhongMon;
-        }
+    logWriter.println("\n========== DEBUG START ==========");
 
-        // Chuẩn hóa mã môn
-        String maMonChuanHoa = normalizeMaMonFromName(monDatGiai.trim());
-        if (maMonChuanHoa == null || maMonChuanHoa.isBlank()) {
+    logWriter.printf(
+            "[%s] Row=%d | CCCD=%s%n",
+            sheetName,
+            rowIdx + 1,
+            cccd
+    );
+
+    logWriter.printf("monDatGiai RAW = [%s]%n", monDatGiai);
+
+    if (monDatGiai == null || monDatGiai.isBlank()) {
+        logWriter.println("=> monDatGiai NULL -> dùng diemThxtKhongMon");
+        return diemThxtKhongMon;
+    }
+
+    String maMonChuanHoa =
+            normalizeMaMonFromName(monDatGiai.trim());
+
+    logWriter.printf("maMonChuanHoa = [%s]%n", maMonChuanHoa);
+
+    String maToHopNormalized = normalize(maToHop);
+
+    logWriter.printf("maToHop = [%s]%n", maToHop);
+    logWriter.printf("maToHopNormalized = [%s]%n", maToHopNormalized);
+
+    List<String> danhSachMon =
+            toHopMonMap.get(maToHopNormalized);
+
+    logWriter.printf("danhSachMon = %s%n", danhSachMon);
+
+    if (danhSachMon != null) {
+        for (String mon : danhSachMon) {
             logWriter.printf(
-                    "[%s] Dòng %d | CCCD=%s | Mã tổ hợp=%s: Không thể convert môn '%s' → dùng THXT%n",
-                    sheetName, rowIdx + 1, cccd, maToHop, monDatGiai);
-            return diemThxtKhongMon;
-        }
-
-        // Lấy danh sách môn của tổ hợp (lookup với key chuẩn hóa)
-        String maToHopNormalized = normalize(maToHop);
-        List<String> danhSachMon = toHopMonMap.get(maToHopNormalized);
-        if (danhSachMon == null || danhSachMon.isEmpty()) {
-            logWriter.printf("[%s] Dòng %d | CCCD=%s | Mã tổ hợp=%s: Không tìm thấy tổ hợp%n",
-                    sheetName, rowIdx + 1, cccd, maToHop);
-            return diemThxtKhongMon;
-        }
-
-        // Kiểm tra xem mã môn có trong tổ hợp không (so sánh sau khi chuẩn hóa)
-        boolean khop = danhSachMon.stream()
-                .anyMatch(mon -> mon != null && mon.equals(maMonChuanHoa));
-
-        if (khop) {
-            return diemMonDatGiai;
-        } else {
-            return diemThxtKhongMon;
+                    "COMPARE DB=[%s] | INPUT=[%s] | EQUAL=%s%n",
+                    mon,
+                    maMonChuanHoa,
+                    mon.equals(maMonChuanHoa)
+            );
         }
     }
 
+    boolean khop = danhSachMon != null &&
+            danhSachMon.stream()
+                    .anyMatch(mon ->
+                            mon != null &&
+                            mon.equals(maMonChuanHoa));
+
+    logWriter.printf("RESULT KHOP = %s%n", khop);
+
+    logWriter.println("========== DEBUG END ==========\n");
+
+    return khop
+            ? diemMonDatGiai
+            : diemThxtKhongMon;
+}
     /**
      * Convert từ tên môn sang mã môn (vd: "Tiếng Anh" → "N1", "Lịch sử" → "SU")
      * Hoặc nếu đã là mã môn rồi, trả về như cũ
      */
     private static String normalizeMaMonFromName(String tenMon) {
-        if (tenMon == null || tenMon.isBlank()) {
-            return null;
-        }
-
-        String normalized = tenMon.trim().toUpperCase();
-
-        // Các quy tắc mapping từ tên sang mã
-        return switch (normalized) {
-            // Các môn chính
-            case "TIẾNG ANH", "ENGLISH", "ANH" -> "N1";
-            case "TOÁN", "MATH" -> "TO";
-            case "LỊCH SỬ", "HISTORY", "SỬ" -> "SU";
-            case "ĐỊA LÝ", "GEOGRAPHY", "ĐỊA" -> "DI";
-            case "HÓA HỌC", "CHEMISTRY", "HÓA" -> "HO";
-            case "VẬT LÝ", "PHYSICS", "VẬT" -> "VA";
-            case "SINH HỌC", "BIOLOGY", "SINH" -> "SI";
-            case "TIẾNG VIỆT", "VIETNAMESE", "VIỆT" -> "VI";
-            case "KHOA HỌC TỰ NHIÊN", "KTTN" -> "KTTN";
-            case "KHOA HỌC XÃ HỘI", "KTXH" -> "KTXH";
-            case "ĐÁ PHÁP", "PHÁP", "FRENCH" -> "DP";
-            case "KTPL" -> "KTPL";
-            case "LI" -> "LI";
-            // Nếu đã là mã rồi (các mã 2 ký tự)
-            default -> {
-                if (normalized.length() == 2 || normalized.equals("N1") || normalized.equals("VI")) {
-                    yield normalized;
-                } else {
-                    yield null;
-                }
-            }
-        };
+    if (tenMon == null || tenMon.isBlank()) {
+        return null;
     }
+
+    // Dùng hàm normalize có sẵn của bạn
+    String normalized = normalize(tenMon);
+
+    return switch (normalized) {
+
+        case "TIENG ANH", "ENGLISH", "ANH" -> "N1";
+
+        case "TOAN HOC", "MATH" -> "TO";
+
+        case "LICH SU", "HISTORY", "SU" -> "SU";
+
+        case "DIA LY", "DIA LI", "GEOGRAPHY", "DIA" -> "DI";
+
+        case "HOA HOC", "CHEMISTRY", "HOA" -> "HO";
+
+        case "VAT LY", "PHYSICS", "VAT" -> "VA";
+
+        case "SINH HOC", "BIOLOGY", "SINH" -> "SI";
+
+        case "NGU VAN" -> "VA";
+
+        case "TIN HOC" -> "TI";
+
+        case "GIAO DUC KINH TE VA PHAP LUAT" -> "KTPL";
+
+
+        // nếu đã là mã môn
+        default -> {
+            if (normalized.length() <= 4) {
+                yield normalized;
+            }
+            yield null;
+        }
+    };
+}
+
 
     // ── Hibernate helpers ────────────────────────────────────────────────────
 
