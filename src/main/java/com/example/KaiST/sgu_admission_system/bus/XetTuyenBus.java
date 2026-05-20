@@ -4,6 +4,7 @@ import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.dto.DiemXetTuyenRow;
 import com.example.KaiST.sgu_admission_system.dto.KetQuaTrungTuyenRow;
 import com.example.KaiST.sgu_admission_system.dto.ThongKeNganhRow;
+import com.example.KaiST.sgu_admission_system.dto.XetTuyenAdmittedRow;
 import com.example.KaiST.sgu_admission_system.entity.XtBangQuyDoi;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemCongXetTuyen;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemThiXetTuyen;
@@ -166,6 +167,142 @@ public class XetTuyenBus {
         }
 
         return result;
+    }
+
+    /**
+     * Xét tuyển theo nguyện vọng đã lưu: dùng {@code diem_xettuyen} và {@code tt_phuongthuc}
+     * từ {@code xt_nguyenvongxettuyen}, chỉ tiêu theo phương thức ({@code sl_thpt},
+     * {@code sl_dgnl}, {@code sl_vsat}) và điểm sàn {@code n_diemsan} của ngành.
+     */
+    public List<XetTuyenAdmittedRow> selectAdmittedByQuota(String selectedMaNganh) {
+        Map<String, XtNganh> nganhByMa = new HashMap<>();
+        for (XtNganh item : nganhBus.findAll()) {
+            if (item != null && item.getMaNganh() != null) {
+                nganhByMa.put(normalize(item.getMaNganh()), item);
+            }
+        }
+
+        Map<String, String> hoTenByCccd = new HashMap<>();
+        for (XtThiSinhXetTuyen25 thiSinh : thiSinhBus.findAll()) {
+            if (thiSinh != null && thiSinh.getCccd() != null) {
+                hoTenByCccd.put(normalize(thiSinh.getCccd()), thiSinh.getTen());
+            }
+        }
+
+        String nganhFilter = normalize(selectedMaNganh);
+
+        Map<String, List<XtNguyenVongXetTuyen>> byNganh = new HashMap<>();
+        for (XtNguyenVongXetTuyen nv : nguyenVongBus.findAll()) {
+            if (nv == null || nv.getNvMaNganh() == null || nv.getDiemXetTuyen() == null) {
+                continue;
+            }
+            String maNganh = normalize(nv.getNvMaNganh());
+            if (!nganhFilter.isEmpty() && !maNganh.equals(nganhFilter)) {
+                continue;
+            }
+            byNganh.computeIfAbsent(maNganh, ignored -> new ArrayList<>()).add(nv);
+        }
+
+        List<XetTuyenAdmittedRow> result = new ArrayList<>();
+        for (Map.Entry<String, List<XtNguyenVongXetTuyen>> entry : byNganh.entrySet()) {
+            String maNganh = entry.getKey();
+            XtNganh nganh = nganhByMa.get(maNganh);
+            if (nganh == null) {
+                continue;
+            }
+            BigDecimal diemSan = nganh.getDiemSan();
+
+            for (PhuongThuc method : PhuongThuc.values()) {
+                if (!isMethodEnabled(nganh, method)) {
+                    continue;
+                }
+                Integer quota = getQuota(nganh, method);
+                if (quota == null || quota <= 0) {
+                    continue;
+                }
+
+                List<XtNguyenVongXetTuyen> candidates = new ArrayList<>();
+                for (XtNguyenVongXetTuyen nv : entry.getValue()) {
+                    PhuongThuc nvMethod = PhuongThuc.fromText(nv.getTtPhuongThuc());
+                    if (nvMethod != method) {
+                        continue;
+                    }
+                    if (diemSan != null && nv.getDiemXetTuyen().compareTo(diemSan) < 0) {
+                        continue;
+                    }
+                    candidates.add(nv);
+                }
+
+                candidates.sort((a, b) -> compareDesc(a.getDiemXetTuyen(), b.getDiemXetTuyen()));
+                int count = Math.min(quota, candidates.size());
+                for (int i = 0; i < count; i++) {
+                    XtNguyenVongXetTuyen nv = candidates.get(i);
+                    String cccd = nv.getNnCccd();
+                    result.add(new XetTuyenAdmittedRow(
+                            cccd,
+                            hoTenByCccd.getOrDefault(normalize(cccd), ""),
+                            nv.getNvMaNganh(),
+                            method.getLabel(),
+                            nv.getDiemXetTuyen(),
+                            quota,
+                            diemSan));
+                }
+            }
+        }
+
+        result.sort((a, b) -> compareDesc(a.getDiemXetTuyen(), b.getDiemXetTuyen()));
+        return result;
+    }
+
+    private boolean isMethodEnabled(XtNganh nganh, PhuongThuc method) {
+        if (nganh == null || method == null) {
+            return false;
+        }
+        String value;
+        switch (method) {
+            case THPT:
+                value = nganh.getThpt();
+                break;
+            case DGNL:
+                value = nganh.getDgnl();
+                break;
+            case VSAT:
+                value = nganh.getVsat();
+                break;
+            default:
+                return false;
+        }
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+        return !"0".equals(value);
+    }
+
+    private Integer getQuota(XtNganh nganh, PhuongThuc method) {
+        if (nganh == null || method == null) {
+            return null;
+        }
+        switch (method) {
+            case THPT:
+                return parseInteger(nganh.getSlThpt());
+            case DGNL:
+                return nganh.getSlDgnl();
+            case VSAT:
+                return nganh.getSlVsat();
+            default:
+                return null;
+        }
+    }
+
+    private Integer parseInteger(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(value.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     public XetTuyenResult runXetTuyen(List<DiemXetTuyenRow> rows) {

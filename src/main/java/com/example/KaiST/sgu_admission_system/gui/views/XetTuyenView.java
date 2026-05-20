@@ -22,7 +22,6 @@ public class XetTuyenView extends JPanel {
 
     private final SearchPanel searchPanel;
     private final JComboBox<String> maNganhComboBox;
-    private final JComboBox<String> phuongThucComboBox;
     private final DefaultTableModel tableModel;
     private final JTable table;
     private final PaginationPanel paginationPanel;
@@ -34,9 +33,6 @@ public class XetTuyenView extends JPanel {
 
         maNganhComboBox = new JComboBox<>();
         maNganhComboBox.setPrototypeDisplayValue("XXXXXXXXXXXXX");
-
-        phuongThucComboBox = new JComboBox<>();
-        phuongThucComboBox.setPrototypeDisplayValue("XXXXXXXXXXXXX");
 
         JPanel headerPanel = new JPanel(new BorderLayout(8, 8));
         headerPanel.setOpaque(false);
@@ -90,8 +86,6 @@ public class XetTuyenView extends JPanel {
         actionPanel.setOpaque(false);
         actionPanel.add(new JLabel("Ngành:"));
         actionPanel.add(maNganhComboBox);
-        actionPanel.add(new JLabel("Phương thức:"));
-        actionPanel.add(phuongThucComboBox);
         actionPanel.add(refreshButton);
         actionPanel.add(runButton);
         return actionPanel;
@@ -109,26 +103,9 @@ public class XetTuyenView extends JPanel {
         }
     }
 
-    public void setPhuongThucOptions(List<String> options) {
-        phuongThucComboBox.removeAllItems();
-        phuongThucComboBox.addItem("Tất cả phương thức");
-        if (options != null) {
-            for (String phuongThuc : options) {
-                if (phuongThuc != null && !phuongThuc.isBlank()) {
-                    phuongThucComboBox.addItem(phuongThuc.trim());
-                }
-            }
-        }
-    }
-
     public String getSelectedMaNganh() {
         Object selected = maNganhComboBox.getSelectedItem();
         return selected == null || "Tất cả ngành".equals(selected) ? "" : selected.toString();
-    }
-
-    public String getSelectedPhuongThuc() {
-        Object selected = phuongThucComboBox.getSelectedItem();
-        return selected == null || "Tất cả phương thức".equals(selected) ? "" : selected.toString();
     }
 
     public void setController(XetTuyenController controller) {

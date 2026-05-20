@@ -12,6 +12,7 @@ public class PhuongThucConverter implements AttributeConverter<PhuongThuc, Strin
 
     @Override
     public PhuongThuc convertToEntityAttribute(String dbData) {
-        return PhuongThuc.fromCode(dbData);
+        PhuongThuc method = PhuongThuc.fromCode(dbData);
+        return method != null ? method : PhuongThuc.fromText(dbData);
     }
 }
