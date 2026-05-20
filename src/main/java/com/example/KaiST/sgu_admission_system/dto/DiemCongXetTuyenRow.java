@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public class DiemCongXetTuyenRow {
     private final Integer idDiemCong;
     private final String tsCccd;
+    private final String maNganh;
     private final String nvKeys;
     private final Integer nvTt;
     private final String tenToHop;
@@ -13,10 +14,11 @@ public class DiemCongXetTuyenRow {
     private final BigDecimal diemUtxt;
     private final BigDecimal diemTong;
 
-    public DiemCongXetTuyenRow(Integer idDiemCong, String tsCccd, String nvKeys, Integer nvTt,
+    public DiemCongXetTuyenRow(Integer idDiemCong, String tsCccd, String maNganh, String nvKeys, Integer nvTt,
             String tenToHop, String maToHop, BigDecimal diemCc, BigDecimal diemUtxt, BigDecimal diemTong) {
         this.idDiemCong = idDiemCong;
         this.tsCccd = tsCccd;
+        this.maNganh = maNganh;
         this.nvKeys = nvKeys;
         this.nvTt = nvTt;
         this.tenToHop = tenToHop;
@@ -32,6 +34,10 @@ public class DiemCongXetTuyenRow {
 
     public String getTsCccd() {
         return tsCccd;
+    }
+
+    public String getMaNganh() {
+        return maNganh;
     }
 
     public String getNvKeys() {

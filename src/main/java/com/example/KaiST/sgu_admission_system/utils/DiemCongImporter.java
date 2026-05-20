@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,7 @@ public class DiemCongImporter {
         int colMonDatGiai = -1; // Môn đạt giải (nếu có)
         int colDiemMonDatGiai = -1; // Điểm cộng cho môn đạt giải
         int colDiemThxtKhongMon = -1; // Điểm cộng cho THXT ko có môn đạt giải
+        int colDiemCongTiengAnh = -1; // Điểm cộng tiếng Anh (file mới)
 
         // Kiểm tra tính hợp lệ
         boolean isValid() {
@@ -73,10 +75,16 @@ public class DiemCongImporter {
                     && colDiemMonDatGiai >= 0 && colDiemThxtKhongMon >= 0;
         }
 
+        boolean isEnglishBonusOnlyValid() {
+            return colCccd >= 0 && colDiemCongTiengAnh >= 0;
+        }
+
         @Override
         public String toString() {
-            return String.format("ColumnMapping[CCCD=%d, TenNganh=%d, MaMon=%d, MonDatGiai=%d, DiemMon=%d, DiemThxt=%d]",
-                    colCccd, colTenNganh, colMaMon, colMonDatGiai, colDiemMonDatGiai, colDiemThxtKhongMon);
+            return String.format(
+                    "ColumnMapping[CCCD=%d, TenNganh=%d, MaMon=%d, MonDatGiai=%d, DiemMon=%d, DiemThxt=%d, DiemCongTiengAnh=%d]",
+                    colCccd, colTenNganh, colMaMon, colMonDatGiai, colDiemMonDatGiai, colDiemThxtKhongMon,
+                    colDiemCongTiengAnh);
         }
     }
 
@@ -146,9 +154,18 @@ public class DiemCongImporter {
 
                 // Phát hiện vị trí cột dựa trên header row
                 ColumnMapping colMap = detectColumns(sheet, logWriter, sheetName);
+                if (!colMap.isValid() && colMap.isEnglishBonusOnlyValid()) {
+                    int[] englishStats = importEnglishBonusSheet(sheet, sheetName, colMap, logWriter, errorMessages);
+                    totalSuccess += englishStats[0];
+                    totalSkipDuplicate += englishStats[1];
+                    totalSkipError += englishStats[2];
+                    continue;
+                }
+
                 if (!colMap.isValid()) {
                     logWriter.println("[" + sheetName + "] LỖI: Không thể tìm thấy các cột bắt buộc. "
-                            + "Cần có: CCCD, (Tên ngành hoặc Mã môn), Điểm CC món, Điểm CC THXT");
+                            + "Cần có: CCCD, (Tên ngành hoặc Mã môn), Điểm CC món, Điểm CC THXT"
+                            + " hoặc file điểm cộng tiếng Anh gồm CCCD + Điểm cộng tiếng Anh");
                     logWriter.println("Detected: " + colMap);
                     continue;
                 }
@@ -168,7 +185,7 @@ public class DiemCongImporter {
                         totalSkipError++;
                         continue;
                     }
-                    cccd = cccd.trim();
+                    cccd = normalizeCccd(cccd);
 
                     // Lấy tên ngành (ưu tiên tên ngành, nếu không thì từ mã môn)
                     String tenNganh = null;
@@ -216,6 +233,15 @@ public class DiemCongImporter {
                         String errorMsg = String.format(
                                 "[%s] Dòng %d | CCCD=%s: Chỉ có mã môn mà không có tên ngành (cấu trúc không hỗ trợ)",
                                 sheetName, rowIdx + 1, cccd);
+                        logWriter.println(errorMsg);
+                        if (errorMessages.size() < 100) errorMessages.add(errorMsg);
+                        totalSkipError++;
+                        continue;
+                    }
+
+                    if (nganh == null) {
+                        String errorMsg = String.format("[%s] Dòng %d | CCCD=%s | Tên ngành=%s: Không tìm thấy mã ngành",
+                                sheetName, rowIdx + 1, cccd, tenNganhOriginal);
                         logWriter.println(errorMsg);
                         if (errorMessages.size() < 100) errorMessages.add(errorMsg);
                         totalSkipError++;
@@ -338,28 +364,40 @@ public class DiemCongImporter {
                 continue;
             }
 
-            colName = colName.trim().toUpperCase();
+            String normalizedColName = normalize(colName);
 
             // Tìm các cột cần thiết
-            if (colName.contains("CCCD")) {
+            if (normalizedColName.contains("CCCD")) {
                 colMap.colCccd = colIdx;
-            } else if (colName.contains("TÊN NGÀNH") || colName.contains("TEN NGANH")) {
+            } else if (normalizedColName.contains("TEN NGANH")) {
                 colMap.colTenNganh = colIdx;
-            } else if (colName.contains("MÃ MÔN") || colName.contains("MA MON")) {
+            } else if (normalizedColName.contains("MA MON")) {
                 colMap.colMaMon = colIdx;
-            } else if ((colName.contains("MÔN ĐẠT GIẢI") || colName.contains("MON DAT GIAI")) && colMap.colMonDatGiai < 0) {
+            } else if (normalizedColName.contains("MON DAT GIAI") && colMap.colMonDatGiai < 0) {
                 colMap.colMonDatGiai = colIdx;
-            } else if (colName.contains("ĐIỂM CỘNG CHO MÔN") || colName.contains("DIEM CONG CHO MON")) {
+            } else if (normalizedColName.contains("DIEM CONG CHO MON")) {
                 // Ưu tiên cột đầu tiên nếu có 2 cột "Điểm cộng cho môn"
                 if (colMap.colDiemMonDatGiai < 0) {
                     colMap.colDiemMonDatGiai = colIdx;
                 }
-            } else if (colName.contains("ĐIỂM CỘNG CHO THXT") || colName.contains("DIEM CONG CHO THXT")) {
+            } else if (normalizedColName.contains("DIEM CONG CHO THXT")) {
                 colMap.colDiemThxtKhongMon = colIdx;
+            } else if (isEnglishBonusHeader(normalizedColName)) {
+                colMap.colDiemCongTiengAnh = colIdx;
             }
         }
 
         return colMap;
+    }
+
+    private static boolean isEnglishBonusHeader(String normalizedHeader) {
+        if (normalizedHeader == null || normalizedHeader.isBlank()) {
+            return false;
+        }
+        boolean hasEnglishKeyword = normalizedHeader.contains("TIENG ANH")
+                || normalizedHeader.contains("ANH VAN")
+                || normalizedHeader.contains("DIEM ANH");
+        return hasEnglishKeyword && (normalizedHeader.contains("DIEM CONG") || normalizedHeader.contains("DIEM"));
     }
 
     // ── Tính điểm cộng dựa trên mã môn ──────────────────────────────────────
@@ -436,46 +474,135 @@ public class DiemCongImporter {
      * Hoặc nếu đã là mã môn rồi, trả về như cũ
      */
     private static String normalizeMaMonFromName(String tenMon) {
-    if (tenMon == null || tenMon.isBlank()) {
-        return null;
+        if (tenMon == null || tenMon.isBlank()) {
+            return null;
+        }
+
+        // Dùng hàm normalize có sẵn của bạn
+        String normalized = normalize(tenMon);
+
+        return switch (normalized) {
+
+            case "TIENG ANH", "ENGLISH", "ANH" -> "N1";
+
+            case "TOAN HOC", "MATH" -> "TO";
+
+            case "LICH SU", "HISTORY", "SU" -> "SU";
+
+            case "DIA LY", "DIA LI", "GEOGRAPHY", "DIA" -> "DI";
+
+            case "HOA HOC", "CHEMISTRY", "HOA" -> "HO";
+
+            case "VAT LY", "PHYSICS", "VAT" -> "VA";
+
+            case "SINH HOC", "BIOLOGY", "SINH" -> "SI";
+
+            case "NGU VAN" -> "VA";
+
+            case "TIN HOC" -> "TI";
+
+            case "GIAO DUC KINH TE VA PHAP LUAT" -> "KTPL";
+
+            // nếu đã là mã môn
+            default -> {
+                if (normalized.length() <= 4) {
+                    yield normalized;
+                }
+                yield null;
+            }
+        };
     }
 
-    // Dùng hàm normalize có sẵn của bạn
-    String normalized = normalize(tenMon);
 
-    return switch (normalized) {
+    private static int[] importEnglishBonusSheet(
+            Sheet sheet,
+            String sheetName,
+            ColumnMapping colMap,
+            PrintWriter logWriter,
+            List<String> errorMessages) {
+        int totalSuccess = 0;
+        int totalSkipDuplicate = 0;
+        int totalSkipError = 0;
 
-        case "TIENG ANH", "ENGLISH", "ANH" -> "N1";
+        logWriter.println("[" + sheetName + "] Phát hiện file điểm cộng tiếng Anh (CCCD + Điểm cộng).");
 
-        case "TOAN HOC", "MATH" -> "TO";
-
-        case "LICH SU", "HISTORY", "SU" -> "SU";
-
-        case "DIA LY", "DIA LI", "GEOGRAPHY", "DIA" -> "DI";
-
-        case "HOA HOC", "CHEMISTRY", "HOA" -> "HO";
-
-        case "VAT LY", "PHYSICS", "VAT" -> "VA";
-
-        case "SINH HOC", "BIOLOGY", "SINH" -> "SI";
-
-        case "NGU VAN" -> "VA";
-
-        case "TIN HOC" -> "TI";
-
-        case "GIAO DUC KINH TE VA PHAP LUAT" -> "KTPL";
-
-
-        // nếu đã là mã môn
-        default -> {
-            if (normalized.length() <= 4) {
-                yield normalized;
+        Map<String, List<XtDiemCongXetTuyen>> diemCongByCccd = loadDiemCongByNormalizedCccd();
+        if (diemCongByCccd.isEmpty()) {
+            String errorMsg = "[" + sheetName + "] Không có dữ liệu điểm cộng hiện có để dò khớp CCCD.";
+            logWriter.println(errorMsg);
+            if (errorMessages.size() < 100) {
+                errorMessages.add(errorMsg);
             }
-            yield null;
+            return new int[] {0, 0, 1};
         }
-    };
-}
 
+        List<XtDiemCongXetTuyen> updatedRows = new ArrayList<>();
+        Set<String> updatedKeys = new HashSet<>();
+
+        for (int rowIdx = DATA_START_IDX; rowIdx <= sheet.getLastRowNum(); rowIdx++) {
+            Row row = sheet.getRow(rowIdx);
+            if (isRowEmpty(row)) {
+                continue;
+            }
+
+            String cccdRaw = getString(row, colMap.colCccd);
+            String cccd = normalizeCccd(cccdRaw);
+            if (cccd.isBlank()) {
+                String errorMsg = String.format("[%s] Dòng %d: CCCD trống", sheetName, rowIdx + 1);
+                logWriter.println(errorMsg);
+                if (errorMessages.size() < 100) {
+                    errorMessages.add(errorMsg);
+                }
+                totalSkipError++;
+                continue;
+            }
+
+            BigDecimal diemCongTiengAnh = getBigDecimal(row, colMap.colDiemCongTiengAnh);
+            if (diemCongTiengAnh == null) {
+                String errorMsg = String.format("[%s] Dòng %d | CCCD=%s: Điểm cộng tiếng Anh không hợp lệ", sheetName,
+                        rowIdx + 1, cccd);
+                logWriter.println(errorMsg);
+                if (errorMessages.size() < 100) {
+                    errorMessages.add(errorMsg);
+                }
+                totalSkipError++;
+                continue;
+            }
+
+            List<XtDiemCongXetTuyen> matchedRows = diemCongByCccd.get(cccd);
+            if (matchedRows == null || matchedRows.isEmpty()) {
+                String errorMsg = String.format("[%s] Dòng %d | CCCD=%s: Không tìm thấy thí sinh để cập nhật diemCC",
+                        sheetName, rowIdx + 1, cccd);
+                logWriter.println(errorMsg);
+                if (errorMessages.size() < 100) {
+                    errorMessages.add(errorMsg);
+                }
+                totalSkipError++;
+                continue;
+            }
+
+            for (XtDiemCongXetTuyen entity : matchedRows) {
+                entity.setDiemCc(diemCongTiengAnh);
+                entity.setDiemTong(sum(diemCongTiengAnh, entity.getDiemUtxt()));
+                String updateKey = entity.getIdDiemCong() != null
+                        ? "ID:" + entity.getIdDiemCong()
+                        : buildKey(entity.getTsCccd(), entity.getMaNganh(), entity.getMaToHop());
+                if (updatedKeys.add(updateKey)) {
+                    updatedRows.add(entity);
+                }
+            }
+
+            logWriter.printf("[%s] Dòng %d | CCCD=%s: Cập nhật điểm cộng tiếng Anh=%s cho %d bản ghi%n",
+                    sheetName, rowIdx + 1, cccd, diemCongTiengAnh, matchedRows.size());
+            totalSuccess++;
+        }
+
+        if (!updatedRows.isEmpty()) {
+            updateBatch(updatedRows, logWriter);
+        }
+
+        return new int[] {totalSuccess, totalSkipDuplicate, totalSkipError};
+    }
 
     // ── Hibernate helpers ────────────────────────────────────────────────────
 
@@ -539,7 +666,7 @@ public class DiemCongImporter {
                             (a, b) -> a)); // Lấy cái đầu nếu trùng
         } catch (Exception e) {
             System.err.println("[DiemCongImporter] Không load được bảng ngành: " + e.getMessage());
-            return new java.util.HashMap<>();
+            return new HashMap<>();
         }
     }
 
@@ -559,7 +686,7 @@ public class DiemCongImporter {
                             }));
         } catch (Exception e) {
             System.err.println("[DiemCongImporter] Không load được bảng ngành-tổ hợp: " + e.getMessage());
-            return new java.util.HashMap<>();
+            return new HashMap<>();
         }
     }
 
@@ -572,7 +699,7 @@ public class DiemCongImporter {
             List<XtToHopMonThi> list = session
                     .createQuery("from XtToHopMonThi", XtToHopMonThi.class)
                     .list();
-            Map<String, List<String>> result = new java.util.HashMap<>();
+            Map<String, List<String>> result = new HashMap<>();
             for (XtToHopMonThi th : list) {
                 List<String> mon = new ArrayList<>();
                 if (th.getMon1() != null)
@@ -587,7 +714,7 @@ public class DiemCongImporter {
             return result;
         } catch (Exception e) {
             System.err.println("[DiemCongImporter] Không load được bảng tổ hợp môn: " + e.getMessage());
-            return new java.util.HashMap<>();
+            return new HashMap<>();
         }
     }
 
@@ -622,6 +749,41 @@ public class DiemCongImporter {
                 logWriter.printf("  - Bị rollback: CCCD=%s | Mã ngành=%s | Mã tổ hợp=%s%n",
                         entity.getTsCccd(), entity.getMaNganh(), entity.getMaToHop());
             }
+        }
+    }
+
+    private static Map<String, List<XtDiemCongXetTuyen>> loadDiemCongByNormalizedCccd() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            List<XtDiemCongXetTuyen> rows = session
+                    .createQuery("from XtDiemCongXetTuyen", XtDiemCongXetTuyen.class)
+                    .list();
+            return rows.stream()
+                    .filter(row -> row.getTsCccd() != null && !row.getTsCccd().isBlank())
+                    .collect(Collectors.groupingBy(row -> normalizeCccd(row.getTsCccd())));
+        } catch (Exception e) {
+            System.err.println("[DiemCongImporter] Không load được dữ liệu điểm cộng theo CCCD: " + e.getMessage());
+            return new HashMap<>();
+        }
+    }
+
+    private static void updateBatch(List<XtDiemCongXetTuyen> updatedRows, PrintWriter logWriter) {
+        Transaction tx = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            tx = session.beginTransaction();
+            for (int i = 0; i < updatedRows.size(); i++) {
+                session.merge(updatedRows.get(i));
+                if ((i + 1) % BATCH_SIZE == 0) {
+                    session.flush();
+                    session.clear();
+                }
+            }
+            session.flush();
+            tx.commit();
+        } catch (Exception e) {
+            if (tx != null) {
+                tx.rollback();
+            }
+            logWriter.println("[UPDATE ENGLISH BONUS FAIL] " + e.getMessage());
         }
     }
 
@@ -679,9 +841,16 @@ public class DiemCongImporter {
     }
 
     private static String buildKey(String cccd, String maNganh, String maToHop) {
-        return (cccd != null ? cccd.toUpperCase() : "") + "|"
+        return normalizeCccd(cccd) + "|"
                 + (maNganh != null ? maNganh.toUpperCase() : "") + "|"
                 + (maToHop != null ? maToHop.toUpperCase() : "");
+    }
+
+    private static String normalizeCccd(String cccd) {
+        if (cccd == null) {
+            return "";
+        }
+        return cccd.replaceAll("\\s+", "").toUpperCase();
     }
 
     private static BigDecimal sum(BigDecimal left, BigDecimal right) {
