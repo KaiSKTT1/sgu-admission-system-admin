@@ -171,11 +171,12 @@ public class XetTuyenBus {
     public XetTuyenResult runXetTuyen(List<DiemXetTuyenRow> rows) {
         List<XtNganh> nganh = nganhBus.findAll();
         Map<String, Integer> chiTieuByNganh = new HashMap<>();
-        Map<String, BigDecimal> diemSanByNganh = new HashMap<>();
+        Map<String, BigDecimal> diemChuanByNganh = new HashMap<>();
         for (XtNganh item : nganh) {
             String key = normalize(item.getMaNganh());
             chiTieuByNganh.put(key, item.getChiTieu() == null ? 0 : item.getChiTieu());
-            diemSanByNganh.put(key, item.getDiemSan());
+            BigDecimal diemChuan = item.getDiemTrungTuyen() != null ? item.getDiemTrungTuyen() : item.getDiemSan();
+            diemChuanByNganh.put(key, diemChuan);
         }
 
         Map<Integer, List<DiemXetTuyenRow>> byNv = new HashMap<>();
@@ -207,7 +208,7 @@ public class XetTuyenBus {
                     continue;
                 }
 
-                BigDecimal diemSan = diemSanByNganh.get(maNganh);
+                BigDecimal diemChuan = diemChuanByNganh.get(maNganh);
                 List<DiemXetTuyenRow> candidates = new ArrayList<>();
                 for (DiemXetTuyenRow row : entry.getValue()) {
                     if (admitted.contains(normalize(row.getCccd()))) {
@@ -216,7 +217,7 @@ public class XetTuyenBus {
                     if (row.getDiemXetTuyen() == null) {
                         continue;
                     }
-                    if (diemSan != null && row.getDiemXetTuyen().compareTo(diemSan) < 0) {
+                    if (diemChuan != null && row.getDiemXetTuyen().compareTo(diemChuan) < 0) {
                         continue;
                     }
                     candidates.add(row);

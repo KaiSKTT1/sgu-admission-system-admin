@@ -1,9 +1,11 @@
 package com.example.KaiST.sgu_admission_system.gui.controllers;
 
 import com.example.KaiST.sgu_admission_system.bus.XetTuyenBus;
+import com.example.KaiST.sgu_admission_system.bus.XtNguyenVongXetTuyenBus;
 import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.dto.DiemXetTuyenRow;
 import com.example.KaiST.sgu_admission_system.dto.KetQuaTrungTuyenRow;
+import com.example.KaiST.sgu_admission_system.dto.NguyenVongXetTuyenRow;
 import com.example.KaiST.sgu_admission_system.dto.ThongKeNganhRow;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemXetTuyenView;
 import com.example.KaiST.sgu_admission_system.utils.ExcelUtils;
@@ -15,14 +17,16 @@ import java.util.Locale;
 public class DiemXetTuyenController {
     private final DiemXetTuyenView view;
     private final XetTuyenBus bus;
-    private List<DiemXetTuyenRow> allRows = new ArrayList<>();
-    private List<DiemXetTuyenRow> filteredRows = new ArrayList<>();
+    private final XtNguyenVongXetTuyenBus nguyenVongBus;
+    private List<NguyenVongXetTuyenRow> allRows = new ArrayList<>();
+    private List<NguyenVongXetTuyenRow> filteredRows = new ArrayList<>();
     private int currentPage = 1;
     private XetTuyenBus.XetTuyenResult lastResult;
 
-    public DiemXetTuyenController(DiemXetTuyenView view, XetTuyenBus bus) {
+    public DiemXetTuyenController(DiemXetTuyenView view, XetTuyenBus bus, XtNguyenVongXetTuyenBus nguyenVongBus) {
         this.view = view;
         this.bus = bus;
+        this.nguyenVongBus = nguyenVongBus;
     }
 
     public void init() {
@@ -30,7 +34,7 @@ public class DiemXetTuyenController {
     }
 
     public void onRefresh() {
-        allRows = bus.buildDiemXetTuyenRows();
+        allRows = nguyenVongBus.findAllWithThiSinhInfo();
         onSearch();
     }
 
@@ -40,7 +44,7 @@ public class DiemXetTuyenController {
             filteredRows = new ArrayList<>(allRows);
         } else {
             filteredRows = new ArrayList<>();
-            for (DiemXetTuyenRow row : allRows) {
+            for (NguyenVongXetTuyenRow row : allRows) {
                 if (containsKeyword(row, keyword)) {
                     filteredRows.add(row);
                 }
@@ -56,7 +60,8 @@ public class DiemXetTuyenController {
     }
 
     public void onRunXetTuyen() {
-        lastResult = bus.runXetTuyen(allRows);
+        List<DiemXetTuyenRow> diemRows = bus.buildDiemXetTuyenRows();
+        lastResult = bus.runXetTuyen(diemRows);
         int total = lastResult.getChiTiet().size();
         view.showInfo("Đã xét tuyển: " + total + " thí sinh trúng tuyển.");
     }
@@ -95,18 +100,22 @@ public class DiemXetTuyenController {
 
         List<Object[]> rows = new ArrayList<>();
         for (int i = start; i < end; i++) {
-            DiemXetTuyenRow record = filteredRows.get(i);
+            NguyenVongXetTuyenRow record = filteredRows.get(i);
             int stt = i + 1;
             rows.add(new Object[] {
                     stt,
-                    safeText(record.getCccd()),
-                    safeText(record.getHoTen()),
-                    safeText(record.getMaNganh()),
-                    safeText(record.getDiemThmMax()),
-                    safeText(record.getDiemThm()),
+                    safeText(record.getNnCccd()),
+                    safeText(record.getTenThiSinh()),
+                    safeText(record.getNvMaNganh()),
+                    safeText(record.getNvTt()),
+                    safeText(record.getTtPhuongThuc()),
+                    safeText(record.getTtThm()),
+                    safeText(record.getDiemThxt()),
                     safeText(record.getDiemCong()),
-                    safeText(record.getDiemUuTien()),
-                    safeText(record.getDiemXetTuyen())
+                    safeText(record.getDiemUtqd()),
+                    safeText(record.getDiemXetTuyen()),
+                    safeText(record.getNvKetQua()),
+                    safeText(record.getNvKeys())
             });
         }
 
@@ -114,10 +123,10 @@ public class DiemXetTuyenController {
         view.updatePagination(currentPage, totalPages);
     }
 
-    private boolean containsKeyword(DiemXetTuyenRow row, String keyword) {
-        return containsIgnoreCase(row.getCccd(), keyword)
-                || containsIgnoreCase(row.getHoTen(), keyword)
-                || containsIgnoreCase(row.getMaNganh(), keyword);
+    private boolean containsKeyword(NguyenVongXetTuyenRow row, String keyword) {
+        return containsIgnoreCase(row.getNnCccd(), keyword)
+                || containsIgnoreCase(row.getTenThiSinh(), keyword)
+                || containsIgnoreCase(row.getNvMaNganh(), keyword);
     }
 
     private boolean containsIgnoreCase(String value, String keyword) {

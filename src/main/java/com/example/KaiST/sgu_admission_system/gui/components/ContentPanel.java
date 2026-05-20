@@ -19,6 +19,7 @@ import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardControlle
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.ToHopMonThiController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.UserController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.XetTuyenController;
 import com.example.KaiST.sgu_admission_system.gui.views.CandidateView;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemThiXetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemCongXetTuyenView;
@@ -29,6 +30,7 @@ import com.example.KaiST.sgu_admission_system.gui.views.NganhView;
 import com.example.KaiST.sgu_admission_system.gui.views.SettingsView;
 import com.example.KaiST.sgu_admission_system.gui.views.ToHopMonThiView;
 import com.example.KaiST.sgu_admission_system.gui.views.UserView;
+import com.example.KaiST.sgu_admission_system.gui.views.XetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.CardLayout;
 import javax.swing.JPanel;
@@ -39,6 +41,7 @@ public class ContentPanel extends JPanel {
         public static final String VIEW_DIEMTHI = "diemthi";
         public static final String VIEW_DIEMCONG = "diemcong";
         public static final String VIEW_DIEMXET = "diemxet";
+        public static final String VIEW_XETTUYEN = "xettuyen";
         public static final String VIEW_USER = "user";
         public static final String VIEW_QUYDOI = "quydoi";
         public static final String VIEW_NGANH = "nganh";
@@ -85,18 +88,25 @@ public class ContentPanel extends JPanel {
                 add(diemCongView, VIEW_DIEMCONG);
 
                 DiemXetTuyenView diemXetView = new DiemXetTuyenView();
+                XtNguyenVongXetTuyenBus nguyenVongBus = new XtNguyenVongXetTuyenBus();
                 XetTuyenBus xetTuyenBus = new XetTuyenBus(
                                 new XtThiSinhXetTuyen25Bus(),
-                                new XtNguyenVongXetTuyenBus(),
+                                nguyenVongBus,
                                 new XtDiemThiXetTuyenBus(),
                                 new XtDiemCongXetTuyenBus(),
                                 new XtBangQuyDoiBus(),
                                 new XtNganhBus(),
                                 new XtNganhToHopBus());
-                DiemXetTuyenController diemXetController = new DiemXetTuyenController(diemXetView, xetTuyenBus);
+                DiemXetTuyenController diemXetController = new DiemXetTuyenController(diemXetView, xetTuyenBus, nguyenVongBus);
                 diemXetView.setController(diemXetController);
                 diemXetController.init();
                 add(diemXetView, VIEW_DIEMXET);
+
+                XetTuyenView xetTuyenView = new XetTuyenView();
+                XetTuyenController xetTuyenController = new XetTuyenController(xetTuyenView, xetTuyenBus, new XtNganhBus());
+                xetTuyenView.setController(xetTuyenController);
+                xetTuyenController.init();
+                add(xetTuyenView, VIEW_XETTUYEN);
 
                 UserView userView = new UserView();
                 UserController userController = new UserController(userView, new XtUserBus());

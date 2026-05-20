@@ -8,6 +8,8 @@ import com.example.KaiST.sgu_admission_system.gui.theme.UiTheme;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.io.File;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -17,7 +19,9 @@ import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 
 public class DiemXetTuyenView extends JPanel {
     private static final int PAGE_SIZE = 20;
@@ -43,12 +47,16 @@ public class DiemXetTuyenView extends JPanel {
                 "STT",
                 "CCCD",
                 "Họ tên",
-                "Nguyện vọng",
-                "Điểm THM cao nhất",
-                "Điểm THM",
+                "Mã ngành",
+                "Thứ tự",
+                "Phương thức",
+                "THM",
+                "Điểm THXT",
                 "Điểm cộng",
                 "Điểm ưu tiên",
-                "Điểm xét tuyển"
+                "Điểm xét tuyển",
+                "Kết quả",
+                "Keys"
         };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -60,6 +68,9 @@ public class DiemXetTuyenView extends JPanel {
         table.setRowHeight(30);
         UiTheme.applyTableStyle(table);
 
+        // Set column widths and formatting
+        setupTableColumns();
+
         JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.setOpaque(false);
         tablePanel.add(new JScrollPane(table), BorderLayout.CENTER);
@@ -67,6 +78,36 @@ public class DiemXetTuyenView extends JPanel {
 
         paginationPanel = new PaginationPanel(page -> runWithController(ctrl -> ctrl.onPageChange(page)));
         add(paginationPanel, BorderLayout.SOUTH);
+    }
+
+    private void setupTableColumns() {
+        // Column widths: STT, CCCD, Name, MaNganh, ThuTu, Method, THM, Scores, Result, Keys
+        int[] columnWidths = { 50, 120, 150, 100, 80, 130, 80, 100, 100, 100, 110, 100, 100 };
+        
+        for (int i = 0; i < columnWidths.length; i++) {
+            TableColumn column = table.getColumnModel().getColumn(i);
+            column.setPreferredWidth(columnWidths[i]);
+            
+            // Format numeric columns (columns 7-10 are score columns)
+            if (i >= 7 && i <= 10) {
+                DefaultTableCellRenderer numberRenderer = new DefaultTableCellRenderer() {
+                    private final DecimalFormat df = new DecimalFormat("0.00");
+                    
+                    @Override
+                    public void setValue(Object value) {
+                        if (value instanceof BigDecimal) {
+                            setText(df.format((BigDecimal) value));
+                        } else if (value instanceof Number) {
+                            setText(df.format(((Number) value).doubleValue()));
+                        } else {
+                            setText((value == null) ? "" : value.toString());
+                        }
+                    }
+                };
+                numberRenderer.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+                column.setCellRenderer(numberRenderer);
+            }
+        }
     }
 
     private SearchPanel createSearchPanel() {
