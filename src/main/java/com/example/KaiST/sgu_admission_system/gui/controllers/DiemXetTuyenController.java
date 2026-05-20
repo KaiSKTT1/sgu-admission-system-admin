@@ -9,6 +9,8 @@ import com.example.KaiST.sgu_admission_system.bus.XtNganhBus;
 import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.entity.XtToHopMonThi;
 import com.example.KaiST.sgu_admission_system.entity.XtDiemThiXetTuyen;
+import com.example.KaiST.sgu_admission_system.bus.XtDiemCongXetTuyenBus;
+import com.example.KaiST.sgu_admission_system.entity.XtDiemCongXetTuyen;
 import com.example.KaiST.sgu_admission_system.entity.XtNganhToHop;
 import com.example.KaiST.sgu_admission_system.entity.XtNganh;
 
@@ -43,6 +45,8 @@ public class DiemXetTuyenController {
     private final Map<String, List<XtNganhToHop>> nganhToHopCache = new HashMap<>();
     private final XtNganhBus xtNganhBus = new XtNganhBus();
     private final Map<String, String> nganhGocCache = new HashMap<>();
+    private final XtDiemCongXetTuyenBus diemCongBus = new XtDiemCongXetTuyenBus();
+    private final Map<String, List<XtDiemCongXetTuyen>> diemCongCache = new HashMap<>();
 
     private static final Map<String, Map<String, BigDecimal>> CONVERSION_TABLE = new HashMap<>();
     static {
@@ -159,11 +163,22 @@ public class DiemXetTuyenController {
         }
     }
 
+    private void preloadDiemCong() {
+        diemCongCache.clear();
+        for (XtDiemCongXetTuyen dc : diemCongBus.findAll()) {
+            if (dc.getTsCccd() != null) {
+                String key = dc.getTsCccd().trim().toUpperCase();
+                diemCongCache.computeIfAbsent(key, k -> new ArrayList<>()).add(dc);
+            }
+        }
+    }
+
     public void onRefresh() {
         preloadToHop();
         preloadDiemThi();
         preloadNganhToHop();
         preloadNganhGoc();
+        preloadDiemCong();
         allRows = nguyenVongBus.findAllWithThiSinhInfo();
         onSearch();
     }
@@ -424,8 +439,35 @@ public class DiemXetTuyenController {
         for (int i = start; i < end; i++) {
             NguyenVongXetTuyenRow record = filteredRows.get(i);
             int stt = i + 1;
-            BigDecimal calculatedDiemThxt = calculateDiemThxt(record.getNnCccd(), record.getNvMaNganh(), record.getTtThm());
-            String diemThxtStr = calculatedDiemThxt != null ? calculatedDiemThxt.toString() : safeText(record.getDiemThxt());
+            BigDecimal thxt = calculateDiemThxt(record.getNnCccd(), record.getNvMaNganh(), record.getTtThm());
+            if (thxt == null) {
+                thxt = record.getDiemThxt();
+            }
+
+            // Look up the dynamic bonus score from the cache by CCCD + THM
+            String cccdKey = record.getNnCccd() != null ? record.getNnCccd().trim().toUpperCase() : "";
+            List<XtDiemCongXetTuyen> dcList = diemCongCache.get(cccdKey);
+            BigDecimal dynamicDiemCong = null;
+            if (dcList != null && !dcList.isEmpty()) {
+                String thmKey = record.getTtThm() != null ? record.getTtThm().trim().toUpperCase() : "";
+                for (XtDiemCongXetTuyen dc : dcList) {
+                    if (dc.getMaToHop() != null && dc.getMaToHop().trim().toUpperCase().equals(thmKey)) {
+                        dynamicDiemCong = dc.getDiemTong();
+                        break;
+                    }
+                }
+            }
+
+            BigDecimal cong = dynamicDiemCong != null ? dynamicDiemCong : record.getDiemCong();
+            BigDecimal ut = record.getDiemUtqd();
+
+            BigDecimal finalDiemXetTuyen = null;
+            if (thxt != null) {
+                finalDiemXetTuyen = thxt.add(cong != null ? cong : BigDecimal.ZERO).add(ut != null ? ut : BigDecimal.ZERO);
+            } else if (record.getDiemXetTuyen() != null) {
+                finalDiemXetTuyen = record.getDiemXetTuyen();
+            }
+
             rows.add(new Object[] {
                     stt,
                     safeText(record.getNnCccd()),
@@ -434,10 +476,10 @@ public class DiemXetTuyenController {
                     safeText(record.getNvTt()),
                     safeText(record.getTtPhuongThuc()),
                     safeText(record.getTtThm()),
-                    diemThxtStr,
-                    safeText(record.getDiemCong()),
-                    safeText(record.getDiemUtqd()),
-                    safeText(record.getDiemXetTuyen()),
+                    thxt != null ? thxt : "",
+                    cong != null ? cong : "",
+                    ut != null ? ut : "",
+                    finalDiemXetTuyen != null ? finalDiemXetTuyen : "",
                     safeText(record.getNvKetQua()),
                     safeText(record.getNvKeys())
             });
