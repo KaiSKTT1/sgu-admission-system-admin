@@ -394,10 +394,10 @@ public class DiemCongImporter {
         if (normalizedHeader == null || normalizedHeader.isBlank()) {
             return false;
         }
-        return normalizedHeader.contains("DIEM CONG")
-                && (normalizedHeader.contains("TIENG ANH")
-                        || normalizedHeader.contains("ANH VAN")
-                        || normalizedHeader.equals("DIEM ANH"));
+        boolean hasEnglishKeyword = normalizedHeader.contains("TIENG ANH")
+                || normalizedHeader.contains("ANH VAN")
+                || normalizedHeader.contains("DIEM ANH");
+        return hasEnglishKeyword && (normalizedHeader.contains("DIEM CONG") || normalizedHeader.contains("DIEM"));
     }
 
     // ── Tính điểm cộng dựa trên mã môn ──────────────────────────────────────
