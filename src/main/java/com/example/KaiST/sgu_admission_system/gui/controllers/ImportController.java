@@ -2,7 +2,10 @@ package com.example.KaiST.sgu_admission_system.gui.controllers;
 
 import com.example.KaiST.sgu_admission_system.gui.views.ImportView;
 import com.example.KaiST.sgu_admission_system.utils.CandidateImporter;
+import com.example.KaiST.sgu_admission_system.utils.DiemTohopCalculator;
+import com.example.KaiST.sgu_admission_system.utils.NganhToHopImporter;
 import com.example.KaiST.sgu_admission_system.utils.NguyenVongImporter;
+import com.example.KaiST.sgu_admission_system.utils.NguyenVongScoreUpdater;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -29,6 +32,9 @@ public class ImportController {
                 new String[] { "STT", "CCCD", "Thứ tự NV", "Mã trường",
                         "Tên trường", "Mã xét tuyển", "Tên mã xét tuyển",
                         "Nguyện vọng tuyển thẳng (điều 8)" });
+        DATA_TYPE_COLUMNS.put("Ngành - Tổ hợp môn",
+                new String[] { "STT", "MANGANH", "TEN_NGANHCHUAN", "MA_TO_HOP",
+                        "tb_keys", "TEN_TO_HOP", "Gốc", "Độ lệch" });
     }
 
     public ImportController(ImportView view) {
@@ -36,7 +42,8 @@ public class ImportController {
     }
 
     public void init() {
-        currentDataType = "Thí sinh xét tuyển";
+        // Đồng bộ currentDataType với item đang chọn trên view
+        currentDataType = view.getSelectedDataType();
     }
 
     // ── Chọn file ────────────────────────────────────────────────────────────
@@ -102,14 +109,38 @@ public class ImportController {
                                 result.totalSkipDuplicate, result.totalSkipError,
                                 result.logPath);
                     }
+
                     case "Nguyện vọng xét tuyển" -> {
+                        // Bước 1: Import nguyện vọng từ Excel
+                        publish(20);
+                        SwingUtilities.invokeLater(() -> view.setStatus("Đang import nguyện vọng...", true));
+                        NguyenVongImporter.ImportResult importResult = NguyenVongImporter.importFromExcel(filePath);
+
+                        // Bước 2: Điền tt_thm từ n_tohopgoc
+                        publish(50);
+                        SwingUtilities.invokeLater(() -> view.setStatus("Đang điền tổ hợp môn...", true));
+                        NguyenVongScoreUpdater.fillTtThmFromNganhGoc();
+
+                        // Bước 3: Tính điểm tổ hợp → cập nhật diem_thxt, diem_xettuyen
+                        publish(70);
+                        SwingUtilities.invokeLater(() -> view.setStatus("Đang tính điểm tổ hợp...", true));
+                        DiemTohopCalculator.calculateAndUpdate();
+
+                        publish(90);
+                        yield buildResultMessage(dataType, importResult.totalSuccess,
+                                importResult.totalSkipDuplicate, importResult.totalSkipError,
+                                importResult.logPath);
+                    }
+
+                    case "Ngành - Tổ hợp môn" -> {
                         publish(30);
-                        NguyenVongImporter.ImportResult result = NguyenVongImporter.importFromExcel(filePath);
+                        NganhToHopImporter.ImportResult result = NganhToHopImporter.importFromExcel(filePath);
                         publish(90);
                         yield buildResultMessage(dataType, result.totalSuccess,
                                 result.totalSkipDuplicate, result.totalSkipError,
                                 result.logPath);
                     }
+
                     default -> "❌ Loại dữ liệu \"" + dataType + "\" chưa được hỗ trợ.";
                 };
             }
@@ -166,7 +197,6 @@ public class ImportController {
                 org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet("Data");
                 org.apache.poi.ss.usermodel.Row header = sheet.createRow(0);
 
-                // Style: bold + nền vàng nhạt cho dòng header
                 org.apache.poi.ss.usermodel.CellStyle headerStyle = wb.createCellStyle();
                 org.apache.poi.ss.usermodel.Font font = wb.createFont();
                 font.setBold(true);
