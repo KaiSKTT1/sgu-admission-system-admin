@@ -45,13 +45,11 @@ public class ImportView extends JPanel {
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titleLabel.setForeground(UiTheme.TEXT_DARK);
 
+        // Các key phải khớp chính xác với switch-case trong ImportController
         String[] dataTypes = {
                 "Thí sinh xét tuyển",
-                "Điểm thi xét tuyển",
-                "Điểm cộng xét tuyển",
-                "Ngành",
-                "Tổ hợp môn thi",
-                "Nguyện vọng xét tuyển"
+                "Nguyện vọng xét tuyển",
+                "Ngành - Tổ hợp môn"
         };
         dataTypeCombo = new JComboBox<>(dataTypes);
         dataTypeCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -272,6 +270,8 @@ public class ImportView extends JPanel {
                 controller.onChooseFileClicked();
             }
         });
+        // Đồng bộ trạng thái ban đầu của controller với view
+        controller.init();
     }
 
     public String getSelectedDataType() {
