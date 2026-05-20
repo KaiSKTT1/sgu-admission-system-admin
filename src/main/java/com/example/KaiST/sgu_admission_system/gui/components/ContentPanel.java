@@ -16,6 +16,7 @@ import com.example.KaiST.sgu_admission_system.gui.controllers.DiemCongXetTuyenCo
 import com.example.KaiST.sgu_admission_system.gui.controllers.DiemXetTuyenController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.BangQuyDoiController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.DashboardController;
+import com.example.KaiST.sgu_admission_system.gui.controllers.ImportController; // ← NEW
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.NganhToHopController;
 import com.example.KaiST.sgu_admission_system.gui.controllers.ToHopMonThiController;
@@ -27,6 +28,7 @@ import com.example.KaiST.sgu_admission_system.gui.views.DiemCongXetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.views.DiemXetTuyenView;
 import com.example.KaiST.sgu_admission_system.gui.views.BangQuyDoiView;
 import com.example.KaiST.sgu_admission_system.gui.views.DashboardView;
+import com.example.KaiST.sgu_admission_system.gui.views.ImportView; // ← NEW
 import com.example.KaiST.sgu_admission_system.gui.views.NganhView;
 import com.example.KaiST.sgu_admission_system.gui.views.NganhToHopView;
 import com.example.KaiST.sgu_admission_system.gui.views.SettingsView;
@@ -50,6 +52,7 @@ public class ContentPanel extends JPanel {
         public static final String VIEW_TOHOP = "tohop";
         public static final String VIEW_NGANH_TOHOP = "nganh_tohop";
         public static final String VIEW_SETTINGS = "settings";
+        public static final String VIEW_IMPORT = "Import"; // ← NEW (đổi từ "Import")
 
         private final CardLayout cardLayout;
 
@@ -58,6 +61,7 @@ public class ContentPanel extends JPanel {
                 setLayout(cardLayout);
                 setBackground(UiTheme.PAGE_BG);
 
+                // ── Dashboard ────────────────────────────────────────────
                 DashboardView dashboardView = new DashboardView();
                 DashboardController dashboardController = new DashboardController(dashboardView,
                                 new XtThiSinhXetTuyen25Bus());
@@ -65,6 +69,7 @@ public class ContentPanel extends JPanel {
                 dashboardController.init();
                 add(dashboardView, VIEW_DASHBOARD);
 
+                // ── Thí sinh ─────────────────────────────────────────────
                 CandidateView candidateView = new CandidateView();
                 CandidateController candidateController = new CandidateController(
                                 candidateView,
@@ -74,6 +79,7 @@ public class ContentPanel extends JPanel {
                 candidateController.init();
                 add(candidateView, VIEW_CANDIDATE);
 
+                // ── Điểm thi ─────────────────────────────────────────────
                 DiemThiXetTuyenView diemThiView = new DiemThiXetTuyenView();
                 DiemThiXetTuyenController diemThiController = new DiemThiXetTuyenController(
                                 diemThiView,
@@ -82,6 +88,7 @@ public class ContentPanel extends JPanel {
                 diemThiController.init();
                 add(diemThiView, VIEW_DIEMTHI);
 
+                // ── Điểm cộng ────────────────────────────────────────────
                 DiemCongXetTuyenView diemCongView = new DiemCongXetTuyenView();
                 DiemCongXetTuyenController diemCongController = new DiemCongXetTuyenController(
                                 diemCongView,
@@ -90,6 +97,7 @@ public class ContentPanel extends JPanel {
                 diemCongController.init();
                 add(diemCongView, VIEW_DIEMCONG);
 
+                // ── Điểm xét tuyển ───────────────────────────────────────
                 DiemXetTuyenView diemXetView = new DiemXetTuyenView();
                 XtNguyenVongXetTuyenBus nguyenVongBus = new XtNguyenVongXetTuyenBus();
                 XetTuyenBus xetTuyenBus = new XetTuyenBus(
@@ -100,23 +108,28 @@ public class ContentPanel extends JPanel {
                                 new XtBangQuyDoiBus(),
                                 new XtNganhBus(),
                                 new XtNganhToHopBus());
-                DiemXetTuyenController diemXetController = new DiemXetTuyenController(diemXetView, xetTuyenBus, nguyenVongBus);
+                DiemXetTuyenController diemXetController = new DiemXetTuyenController(diemXetView, xetTuyenBus,
+                                nguyenVongBus);
                 diemXetView.setController(diemXetController);
                 diemXetController.init();
                 add(diemXetView, VIEW_DIEMXET);
 
+                // ── Xét tuyển ────────────────────────────────────────────
                 XetTuyenView xetTuyenView = new XetTuyenView();
-                XetTuyenController xetTuyenController = new XetTuyenController(xetTuyenView, xetTuyenBus, new XtNganhBus());
+                XetTuyenController xetTuyenController = new XetTuyenController(xetTuyenView, xetTuyenBus,
+                                new XtNganhBus());
                 xetTuyenView.setController(xetTuyenController);
                 xetTuyenController.init();
                 add(xetTuyenView, VIEW_XETTUYEN);
 
+                // ── User ─────────────────────────────────────────────────
                 UserView userView = new UserView();
                 UserController userController = new UserController(userView, new XtUserBus());
                 userView.setController(userController);
                 userController.init();
                 add(userView, VIEW_USER);
 
+                // ── Bảng quy đổi ─────────────────────────────────────────
                 BangQuyDoiView quyDoiView = new BangQuyDoiView();
                 BangQuyDoiController quyDoiController = new BangQuyDoiController(
                                 quyDoiView,
@@ -125,18 +138,21 @@ public class ContentPanel extends JPanel {
                 quyDoiController.init();
                 add(quyDoiView, VIEW_QUYDOI);
 
+                // ── Ngành ────────────────────────────────────────────────
                 NganhView nganhView = new NganhView();
                 NganhController nganhController = new NganhController(nganhView, new XtNganhBus());
                 nganhView.setController(nganhController);
                 nganhController.init();
                 add(nganhView, VIEW_NGANH);
 
+                // ── Tổ hợp môn thi ───────────────────────────────────────
                 ToHopMonThiView toHopView = new ToHopMonThiView();
                 ToHopMonThiController toHopController = new ToHopMonThiController(toHopView, new XtToHopMonThiBus());
                 toHopView.setController(toHopController);
                 toHopController.init();
                 add(toHopView, VIEW_TOHOP);
 
+                // ── Ngành - Tổ hợp ───────────────────────────────────────
                 NganhToHopView nganhToHopView = new NganhToHopView();
                 NganhToHopController nganhToHopController = new NganhToHopController(
                                 nganhToHopView,
@@ -147,7 +163,15 @@ public class ContentPanel extends JPanel {
                 nganhToHopController.init();
                 add(nganhToHopView, VIEW_NGANH_TOHOP);
 
+                // ── Settings ─────────────────────────────────────────────
                 add(new SettingsView(), VIEW_SETTINGS);
+
+                // ── Import Excel ─────────────────────────────────────── ← NEW
+                ImportView importView = new ImportView();
+                ImportController importController = new ImportController(importView);
+                importView.setController(importController);
+                importController.init();
+                add(importView, VIEW_IMPORT);
 
                 showView(VIEW_DASHBOARD);
         }

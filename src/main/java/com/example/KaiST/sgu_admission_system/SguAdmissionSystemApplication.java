@@ -14,15 +14,18 @@ public class SguAdmissionSystemApplication {
 		SwingUtilities.invokeLater(() -> {
 			UiTheme.apply();
 			XtUserBus userBus = new XtUserBus();
-			LoginDialog loginDialog = new LoginDialog(null, userBus);
-			loginDialog.setVisible(true);
-			XtUser loggedIn = loginDialog.getLoggedIn();
-			if (loggedIn == null) {
-				System.exit(0);
-				return;
-			}
-			GUI gui = new GUI(loggedIn);
+			XtUser devUser = new XtUser();
+			// LoginDialog loginDialog = new LoginDialog(null, userBus);
+			// loginDialog.setVisible(true);
+			// XtUser loggedIn = loginDialog.getLoggedIn();
+			// if (loggedIn == null) {
+			// System.exit(0);
+			// return;
+			// }
+			GUI gui = new GUI(devUser);
 			gui.setVisible(true);
+			// GUI gui = new GUI(loggedIn);
+			// gui.setVisible(true);
 		});
 	}
 
