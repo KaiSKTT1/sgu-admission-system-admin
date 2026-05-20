@@ -33,6 +33,7 @@ public class NganhController {
 
     public void onRefresh() {
         allNganh = bus.findAll();
+        System.out.println("[DEBUG] NganhController.onRefresh() - Loaded " + allNganh.size() + " ngành records");
         nguyenVongCount = bus.countNguyenVongByMaNganh();
         onSearch();
     }

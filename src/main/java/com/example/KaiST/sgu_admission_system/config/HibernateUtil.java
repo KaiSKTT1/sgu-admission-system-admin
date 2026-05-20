@@ -38,8 +38,8 @@ public final class HibernateUtil {
         Configuration configuration = new Configuration();
 
         String dbUrl = getEnv("DB_URL", "jdbc:mysql://localhost:3306/sgu-test");
-        String dbUsername = getEnv("DB_USERNAME", "hbstudent");
-        String dbPassword = getEnv("DB_PASSWORD", "hbstudent");
+        String dbUsername = getEnv("DB_USERNAME", "root");
+        String dbPassword = getEnv("DB_PASSWORD", "");
         String dbDriver = getEnv("DB_DRIVER", "com.mysql.cj.jdbc.Driver");
         String dbDialect = getEnv("DB_DIALECT", "org.hibernate.dialect.MySQLDialect");
         String dbDdlAuto = getEnv("DB_DDL_AUTO", "update");

@@ -133,52 +133,28 @@ public class DiemCongXetTuyenController {
             return;
         }
 
-        List<Map<String, String>> rows;
         try {
-            rows = ExcelUtils.readRows(file, List.of(
-                    "ts_cccd",
-                    "cccd",
-                    "manganh",
-                    "matohop",
-                    "phuongthuc",
-                    "diemcc",
-                    "diemutxt",
-                    "diemtong",
-                    "ghichu",
-                    "dc_keys"));
-        } catch (Exception ex) {
-            view.showError("Không thể đọc file Excel: " + ex.getMessage());
-            return;
-        }
-
-        List<XtDiemCongXetTuyen> imported = new ArrayList<>();
-        for (Map<String, String> row : rows) {
-            XtDiemCongXetTuyen record = new XtDiemCongXetTuyen();
-            boolean hasData = false;
-
-            hasData |= applyValue(row, record::setTsCccd, "ts_cccd", "cccd");
-            hasData |= applyValue(row, record::setMaNganh, "manganh");
-            hasData |= applyValue(row, record::setMaToHop, "matohop");
-            hasData |= applyValue(row, record::setPhuongThuc, "phuongthuc", "phuong thuc");
-            hasData |= applyDecimal(row, record::setDiemCc, "diemcc", "diem_cc");
-            hasData |= applyDecimal(row, record::setDiemUtxt, "diemutxt", "diem_utxt");
-            hasData |= applyDecimal(row, record::setDiemTong, "diemtong", "diem_tong");
-            hasData |= applyValue(row, record::setGhiChu, "ghichu", "ghi chu");
-            hasData |= applyValue(row, record::setDcKeys, "dc_keys", "dc keys");
-
-            if (hasData) {
-                imported.add(record);
+            // Sử dụng DiemCongImporter để xử lý logic tính toán điểm cộng
+            com.example.KaiST.sgu_admission_system.utils.DiemCongImporter.ImportResult result = 
+                com.example.KaiST.sgu_admission_system.utils.DiemCongImporter.importFromExcel(file.getAbsolutePath());
+            
+            StringBuilder message = new StringBuilder();
+            message.append("Kết quả import:\\n");
+            message.append("✓ Thành công: ").append(result.totalSuccess).append("\\n");
+            if (result.totalSkipDuplicate > 0) {
+                message.append("⊘ Bỏ qua (trùng): ").append(result.totalSkipDuplicate).append("\\n");
             }
+            if (result.totalSkipError > 0) {
+                message.append("✗ Lỗi: ").append(result.totalSkipError).append("\\n");
+            }
+            message.append("\\n📝 Log file: ").append(result.logPath);
+            
+            view.showInfo(message.toString());
+            onRefresh();
+        } catch (Exception ex) {
+            view.showError("Lỗi khi import từ Excel: " + ex.getMessage());
+            ex.printStackTrace();
         }
-
-        if (imported.isEmpty()) {
-            view.showInfo("Không có dữ liệu hợp lệ để import.");
-            return;
-        }
-
-        bus.saveAll(imported);
-        onRefresh();
-        view.showInfo("Đã import " + imported.size() + " bản ghi.");
     }
 
     private void updateTable() {
