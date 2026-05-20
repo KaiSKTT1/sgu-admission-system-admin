@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -665,7 +666,7 @@ public class DiemCongImporter {
                             (a, b) -> a)); // Lấy cái đầu nếu trùng
         } catch (Exception e) {
             System.err.println("[DiemCongImporter] Không load được bảng ngành: " + e.getMessage());
-            return new java.util.HashMap<>();
+            return new HashMap<>();
         }
     }
 
@@ -685,7 +686,7 @@ public class DiemCongImporter {
                             }));
         } catch (Exception e) {
             System.err.println("[DiemCongImporter] Không load được bảng ngành-tổ hợp: " + e.getMessage());
-            return new java.util.HashMap<>();
+            return new HashMap<>();
         }
     }
 
@@ -698,7 +699,7 @@ public class DiemCongImporter {
             List<XtToHopMonThi> list = session
                     .createQuery("from XtToHopMonThi", XtToHopMonThi.class)
                     .list();
-            Map<String, List<String>> result = new java.util.HashMap<>();
+            Map<String, List<String>> result = new HashMap<>();
             for (XtToHopMonThi th : list) {
                 List<String> mon = new ArrayList<>();
                 if (th.getMon1() != null)
@@ -713,7 +714,7 @@ public class DiemCongImporter {
             return result;
         } catch (Exception e) {
             System.err.println("[DiemCongImporter] Không load được bảng tổ hợp môn: " + e.getMessage());
-            return new java.util.HashMap<>();
+            return new HashMap<>();
         }
     }
 
@@ -761,7 +762,7 @@ public class DiemCongImporter {
                     .collect(Collectors.groupingBy(row -> normalizeCccd(row.getTsCccd())));
         } catch (Exception e) {
             System.err.println("[DiemCongImporter] Không load được dữ liệu điểm cộng theo CCCD: " + e.getMessage());
-            return new java.util.HashMap<>();
+            return new HashMap<>();
         }
     }
 
@@ -840,7 +841,7 @@ public class DiemCongImporter {
     }
 
     private static String buildKey(String cccd, String maNganh, String maToHop) {
-        return normalizeCccd(cccd).toUpperCase() + "|"
+        return normalizeCccd(cccd) + "|"
                 + (maNganh != null ? maNganh.toUpperCase() : "") + "|"
                 + (maToHop != null ? maToHop.toUpperCase() : "");
     }
@@ -849,7 +850,7 @@ public class DiemCongImporter {
         if (cccd == null) {
             return "";
         }
-        return cccd.replaceAll("\\s+", "").trim();
+        return cccd.replaceAll("\\s+", "").toUpperCase();
     }
 
     private static BigDecimal sum(BigDecimal left, BigDecimal right) {
