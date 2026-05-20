@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 public class NganhController {
     private final NganhView view;
@@ -115,74 +116,192 @@ public class NganhController {
     }
 
     public void onImport() {
-        File file = view.chooseExcelFile();
-        if (file == null) {
+        File[] files = view.chooseMultipleExcelFiles();
+        if (files == null || files.length == 0) {
             return;
         }
 
-        List<Map<String, String>> rows;
-        try {
-            rows = ExcelUtils.readRows(file, List.of(
-                    "manganh",
-                    "ma nganh",
-                    "tennganh",
-                    "ten nganh",
-                    "chi tieu",
-                    "chi tieu chot",
-                    "nguong dau vao",
-                    "diem san"));
-        } catch (Exception ex) {
-            view.showError("Không thể đọc file Excel: " + ex.getMessage());
+        ImportResult importResult = new ImportResult();
+        
+        for (File file : files) {
+            try {
+                List<Map<String, String>> rows = ExcelUtils.readRows(file, getAllPossibleHeaders());
+                
+                for (Map<String, String> row : rows) {
+                    processRow(row, importResult);
+                }
+            } catch (Exception ex) {
+                view.showError("Lỗi đọc file " + file.getName() + ": " + ex.getMessage());
+            }
+        }
+
+        if (!importResult.conflicts.isEmpty()) {
+            displayConflicts(importResult.conflicts);
             return;
         }
 
-        List<XtNganh> imported = new ArrayList<>();
-        for (Map<String, String> row : rows) {
-            String maNganh = getValue(row, "manganh", "ma_nganh", "ma nganh", "ma");
-            if (maNganh == null || maNganh.isBlank()) {
-                continue;
+        // Save new nganh
+        for (XtNganh nganh : importResult.newNganh) {
+            bus.save(nganh);
+        }
+        
+        // Save updated nganh
+        for (XtNganh nganh : importResult.updatedNganh) {
+            bus.save(nganh);
+        }
+
+        onRefresh();
+        int total = importResult.newNganh.size() + importResult.updatedNganh.size();
+        view.showInfo("Đã import " + total + " ngành (" + importResult.newNganh.size() + " mới, "
+                + importResult.updatedNganh.size() + " cập nhật).");
+    }
+
+    private void processRow(Map<String, String> row, ImportResult result) {
+        // Lấy mã ngành từ MÃ CTĐT hoặc Mã xét tuyển
+        String maNganh = getValue(row, "manganh", "ma_nganh", "ma nganh", "ma", 
+                                    "ma ctdt", "ma_ctdt", "mã ctđt",
+                                    "ma xet tuyen", "ma_xet_tuyen", "mã xét tuyển");
+        if (maNganh == null || maNganh.isBlank()) {
+            return;
+        }
+
+        // Lấy tên ngành từ Tên CTĐT, Tên ngành chương trình đào tạo, hoặc Tên mã xét tuyển
+        String tenNganh = getValue(row, "tennganh", "ten_nganh", "ten nganh", "ten", 
+                                     "ten ctdt", "ten_ctdt", "tên ctđt",
+                                     "ten nganh, chuong trinh dao tao", "ten chuong trinh dao tao",
+                                     "ten ma xet tuyen", "ten_ma_xet_tuyen", "tên mã xét tuyển");
+        
+        // Lấy chỉ tiêu
+        Integer chiTieu = parseInteger(getValue(row, "n_chitieu", "chitieu", "chi tieu", "chi tieu chot", "chi_tieu_chot"));
+        
+        // Lấy ngưỡng đầu vào (diemSan)
+        BigDecimal diemSan = parseBigDecimal(getValue(row, "n_diemsan", "diemsan", "diem san", 
+                                                        "nguong dau vao", "nguong_dau_vao", "ngưỡng đầu vào"));
+
+        Optional<XtNganh> existing = bus.findByMaNganh(maNganh);
+        if (existing.isEmpty()) {
+            // Tạo mới nếu chưa tồn tại
+            XtNganh newNganh = new XtNganh();
+            newNganh.setMaNganh(maNganh);
+            newNganh.setTenNganh(tenNganh);
+            newNganh.setChiTieu(chiTieu);
+            newNganh.setDiemSan(diemSan);
+            result.newNganh.add(newNganh);
+        } else {
+            XtNganh nganh = existing.get();
+            
+            // Kiểm tra xung đột: chỉ cập nhật tenNganh nếu chưa có, không kiểm tra xung đột
+            if (chiTieu != null && nganh.getChiTieu() != null && !nganh.getChiTieu().equals(chiTieu)) {
+                result.conflicts.add(new ConflictInfo(maNganh, "chiTieu", String.valueOf(nganh.getChiTieu()), String.valueOf(chiTieu)));
+                return;
+            }
+            
+            if (diemSan != null && nganh.getDiemSan() != null && nganh.getDiemSan().compareTo(diemSan) != 0) {
+                result.conflicts.add(new ConflictInfo(maNganh, "diemSan", String.valueOf(nganh.getDiemSan()), String.valueOf(diemSan)));
+                return;
             }
 
-            String tenNganh = getValue(row, "tennganh", "ten_nganh", "ten nganh", "ten");
-            String toHopGoc = getValue(row, "n_tohopgoc", "tohopgoc", "to hop goc", "tohop", "tentohop", "ten_to_hop");
-            Integer chiTieu = parseInteger(getValue(row, "n_chitieu", "chitieu", "chi tieu", "chi tieu chot"));
-            BigDecimal diemSan = parseBigDecimal(getValue(row, "n_diemsan", "diemsan", "diem san", "nguong dau vao"));
-            BigDecimal diemTrungTuyen = parseBigDecimal(
-                    getValue(row, "n_diemtrungtuyen", "diemtrungtuyen", "diem trung tuyen"));
-
-            XtNganh nganh = bus.findByMaNganh(maNganh).orElse(null);
-            if (nganh == null) {
-                XtNganh newNganh = new XtNganh();
-                newNganh.setMaNganh(maNganh);
-                newNganh.setTenNganh(tenNganh);
-                newNganh.setToHopGoc(toHopGoc);
-                newNganh.setChiTieu(chiTieu);
-                newNganh.setDiemSan(diemSan);
-                newNganh.setDiemTrungTuyen(diemTrungTuyen);
-                imported.add(newNganh);
-                continue;
-            }
-
+            // Cập nhật nếu không xung đột
             boolean updated = false;
+            // Chỉ cập nhật tenNganh nếu chưa có
             updated |= setIfBlank(nganh.getTenNganh(), nganh::setTenNganh, tenNganh);
-            updated |= setIfBlank(nganh.getToHopGoc(), nganh::setToHopGoc, toHopGoc);
             updated |= setIfBlank(nganh.getChiTieu(), nganh::setChiTieu, chiTieu);
             updated |= setIfPresent(nganh.getDiemSan(), nganh::setDiemSan, diemSan);
-            updated |= setIfPresent(nganh.getDiemTrungTuyen(), nganh::setDiemTrungTuyen, diemTrungTuyen);
-
-            if (updated) {
-                bus.save(nganh);
+            
+            // Xử lý toHopGoc: chỉ lấy nếu cột có chứa "Gốc"
+            if (hasColumnWithKeyword(row, "goc")) {
+                String toHopGoc = getValue(row, "n_tohopgoc", "tohopgoc", "to hop goc", "to_hop_goc", "ten_to_hop");
+                updated |= setIfBlank(nganh.getToHopGoc(), nganh::setToHopGoc, toHopGoc);
+            }
+            
+            if (updated && !result.updatedNganh.contains(nganh)) {
+                result.updatedNganh.add(nganh);
             }
         }
+    }
 
-        if (imported.isEmpty()) {
-            view.showInfo("Không có dữ liệu hợp lệ để import.");
-            return;
+    private boolean hasColumnWithKeyword(Map<String, String> row, String keyword) {
+        for (String key : row.keySet()) {
+            if (key.toLowerCase(Locale.ROOT).contains(keyword.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
         }
+        return false;
+    }
 
-        bus.saveAll(imported);
-        onRefresh();
-        view.showInfo("Đã import " + imported.size() + " ngành.");
+    private List<String> getAllPossibleHeaders() {
+        return List.of(
+                // Mã ngành: từ MÃ CTĐT hoặc Mã xét tuyển
+                "manganh", "ma_nganh", "ma nganh", "ma",
+                "ma ctdt", "ma_ctdt", "mã ctđt",
+                "ma xet tuyen", "ma_xet_tuyen", "mã xét tuyển",
+                
+                // Tên ngành: từ Tên CTĐT, Tên ngành chương trình, hoặc Tên mã xét tuyển
+                "tennganh", "ten_nganh", "ten nganh", "ten",
+                "ten ctdt", "ten_ctdt", "tên ctđt",
+                "ten nganh, chuong trinh dao tao", "ten chuong trinh dao tao",
+                "ten ma xet tuyen", "ten_ma_xet_tuyen", "tên mã xét tuyển",
+                
+                // Tổ hợp gốc
+                "n_tohopgoc", "tohopgoc", "to hop goc", "to_hop_goc", "ten_to_hop",
+                "goc", "to hop goc",
+                
+                // Chỉ tiêu chốt
+                "n_chitieu", "chitieu", "chi tieu", "chi tieu chot", "chi_tieu_chot",
+                
+                // Ngưỡng đầu vào
+                "n_diemsan", "diemsan", "diem san", "diem_san",
+                "nguong dau vao", "nguong_dau_vao", "ngưỡng đầu vào",
+                
+                // Các cột tạm bỏ trống (để tương lai)
+                "n_diemtrungtuyen", "diemtrungtuyen", "diem trung tuyen",
+                "n_tuyenthang", "tuyenthang", "tuyen thang",
+                "n_dgnl", "dgnl",
+                "n_thpt", "thpt",
+                "n_vsat", "vsat",
+                "sl_xtt", "slxtt", "sl xtt",
+                "sl_dgnl", "sldgnl", "sl dgnl",
+                "sl_vsat", "slvsat", "sl vsat",
+                "sl_thpt", "slthpt", "sl thpt",
+                
+                // Các cột khác
+                "cccd", "stt", "thu tu", "thu tu nv");
+    }
+
+    private void displayConflicts(List<ConflictInfo> conflicts) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Phát hiện ").append(conflicts.size()).append(" xung đột:\n\n");
+        
+        for (ConflictInfo conflict : conflicts) {
+            sb.append("Mã ngành: ").append(conflict.maNganh).append("\n");
+            sb.append("Trường: ").append(conflict.field).append("\n");
+            sb.append("Dữ liệu hiện tại: ").append(conflict.currentValue).append("\n");
+            sb.append("Dữ liệu mới: ").append(conflict.newValue).append("\n");
+            sb.append("---\n");
+        }
+        
+        sb.append("\nVui lòng kiểm tra và sửa lỗi trong các file Excel.");
+        view.showError(sb.toString());
+    }
+
+    private static class ConflictInfo {
+        String maNganh;
+        String field;
+        String currentValue;
+        String newValue;
+
+        ConflictInfo(String maNganh, String field, String currentValue, String newValue) {
+            this.maNganh = maNganh;
+            this.field = field;
+            this.currentValue = currentValue;
+            this.newValue = newValue;
+        }
+    }
+
+    private static class ImportResult {
+        List<XtNganh> newNganh = new ArrayList<>();
+        List<XtNganh> updatedNganh = new ArrayList<>();
+        List<ConflictInfo> conflicts = new ArrayList<>();
     }
 
     private void updateTable() {
