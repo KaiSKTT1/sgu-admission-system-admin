@@ -44,6 +44,19 @@ public class XtDiemThiXetTuyenDao {
         }
     }
 
+    public List<XtDiemThiXetTuyen> findByCccd(String cccd) {
+        if (cccd == null || cccd.isBlank()) {
+            return java.util.Collections.emptyList();
+        }
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                    "from XtDiemThiXetTuyen where cccd = :cccd",
+                    XtDiemThiXetTuyen.class)
+                    .setParameter("cccd", cccd)
+                    .list();
+        }
+    }
+
     public XtDiemThiXetTuyen save(XtDiemThiXetTuyen entity) {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {

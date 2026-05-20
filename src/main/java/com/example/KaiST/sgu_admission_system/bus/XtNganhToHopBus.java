@@ -35,4 +35,8 @@ public class XtNganhToHopBus {
     public Optional<XtNganhToHop> findByMaNganhAndMaToHop(String maNganh, String maToHop) {
         return dao.findByMaNganhAndMaToHop(maNganh, maToHop);
     }
+
+    public List<XtNganhToHop> findByMaNganh(String maNganh) {
+        return dao.findByMaNganh(maNganh);
+    }
 }

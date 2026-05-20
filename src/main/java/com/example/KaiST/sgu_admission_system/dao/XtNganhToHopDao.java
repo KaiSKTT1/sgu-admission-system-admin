@@ -67,4 +67,14 @@ public class XtNganhToHopDao {
                     .uniqueResultOptional();
         }
     }
+
+    public List<XtNganhToHop> findByMaNganh(String maNganh) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                    "from XtNganhToHop where maNganh = :maNganh",
+                    XtNganhToHop.class)
+                    .setParameter("maNganh", maNganh)
+                    .list();
+        }
+    }
 }

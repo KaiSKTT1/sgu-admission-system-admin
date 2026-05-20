@@ -15,18 +15,26 @@ public class XtToHopMonThiDao {
     }
 
     public Optional<XtToHopMonThi> findByMaToHop(String maToHop) {
-        if (maToHop == null || maToHop.isBlank()) {
-            return Optional.empty();
-        }
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            XtToHopMonThi result = session.createQuery(
-                    "from XtToHopMonThi where maToHop = :ma",
-                    XtToHopMonThi.class)
-                    .setParameter("ma", maToHop)
-                    .uniqueResult();
-            return Optional.ofNullable(result);
-        }
+
+    if (maToHop == null || maToHop.isBlank()) {
+        return Optional.empty();
     }
+
+    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+
+        XtToHopMonThi result = session.createQuery(
+                "from XtToHopMonThi where maToHop = :ma",
+                XtToHopMonThi.class)
+                .setParameter("ma", maToHop)
+                .setMaxResults(1)
+                .list()
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        return Optional.ofNullable(result);
+    }
+}
 
     public XtToHopMonThi save(XtToHopMonThi entity) {
         Transaction transaction = null;
