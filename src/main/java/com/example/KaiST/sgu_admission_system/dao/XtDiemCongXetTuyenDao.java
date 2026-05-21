@@ -18,15 +18,10 @@ public class XtDiemCongXetTuyenDao {
 
     public List<DiemCongXetTuyenRow> findAllRows() {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String sql = "select dc.iddiemcong, dc.ts_cccd, nv.nv_keys, nv.nv_tt, th.tentohop, "
-                    + "dc.matohop, dc.diemCC, dc.diemUtxt, dc.diemTong "
-                    + "from xt_diemcongxetuyen dc "
-                    + "left join xt_nguyenvongxettuyen nv "
-                    + "on nv.nn_cccd = dc.ts_cccd "
-                    + "and nv.nv_manganh = dc.manganh "
-                    + "and nv.tt_phuongthuc = dc.phuongthuc "
-                    + "and nv.tt_thm = dc.matohop "
-                    + "left join xt_tohop_monthi th on th.matohop = dc.matohop";
+        String sql = "select dc.iddiemcong, dc.ts_cccd, dc.manganh, null, th.tentohop, "
+                + "dc.matohop, dc.diemCC, dc.diemUtxt, dc.diemTong "
+                + "from xt_diemcongxetuyen dc "
+                + "left join xt_tohop_monthi th on th.matohop = dc.matohop";
             List<Object[]> rows = session.createNativeQuery(sql).list();
             List<DiemCongXetTuyenRow> result = new ArrayList<>();
             for (Object[] row : rows) {

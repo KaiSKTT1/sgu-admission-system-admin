@@ -64,19 +64,44 @@ public class DiemCongImporter {
         int colTenNganh = -1; // Tên ngành
         int colMaMon = -1; // Mã môn (nếu có)
         int colMonDatGiai = -1; // Môn đạt giải (nếu có)
+
         int colDiemMonDatGiai = -1; // Điểm cộng cho môn đạt giải
         int colDiemThxtKhongMon = -1; // Điểm cộng cho THXT ko có môn đạt giải
 
-        // Kiểm tra tính hợp lệ
+        // FILE TIẾNG ANH
+        int colDiemCongTiengAnh = -1;
+
+        // đánh dấu file tiếng anh
+        boolean isEnglishCertificateFile = false;
+
         boolean isValid() {
-            return colCccd >= 0 && (colTenNganh >= 0 || colMaMon >= 0)
-                    && colDiemMonDatGiai >= 0 && colDiemThxtKhongMon >= 0;
+
+            // file điểm cộng tiếng anh
+            if (isEnglishCertificateFile) {
+                return colCccd >= 0
+                        && colDiemCongTiengAnh >= 0;
+            }
+
+            // file cũ
+            return colCccd >= 0
+                    && (colTenNganh >= 0 || colMaMon >= 0)
+                    && colDiemMonDatGiai >= 0
+                    && colDiemThxtKhongMon >= 0;
         }
 
         @Override
         public String toString() {
-            return String.format("ColumnMapping[CCCD=%d, TenNganh=%d, MaMon=%d, MonDatGiai=%d, DiemMon=%d, DiemThxt=%d]",
-                    colCccd, colTenNganh, colMaMon, colMonDatGiai, colDiemMonDatGiai, colDiemThxtKhongMon);
+            return String.format(
+                    "ColumnMapping[CCCD=%d, TenNganh=%d, MaMon=%d, MonDatGiai=%d, DiemMon=%d, DiemThxt=%d, DiemAnh=%d, EnglishFile=%s]",
+                    colCccd,
+                    colTenNganh,
+                    colMaMon,
+                    colMonDatGiai,
+                    colDiemMonDatGiai,
+                    colDiemThxtKhongMon,
+                    colDiemCongTiengAnh,
+                    isEnglishCertificateFile
+            );
         }
     }
 
@@ -153,7 +178,168 @@ public class DiemCongImporter {
                     continue;
                 }
                 logWriter.println("[" + sheetName + "] Detected columns: " + colMap);
+                // ================= FILE ĐIỂM CỘNG TIẾNG ANH =================
+                if (colMap.isEnglishCertificateFile) {
 
+                    for (int rowIdx = DATA_START_IDX; rowIdx <= sheet.getLastRowNum(); rowIdx++) {
+
+                        Row row = sheet.getRow(rowIdx);
+
+                        if (isRowEmpty(row)) {
+                            continue;
+                        }
+
+                        String cccd = getString(row, colMap.colCccd);
+
+                        if (cccd == null || cccd.isBlank()) {
+                            continue;
+                        }
+
+                        cccd = cccd.trim();
+
+                        BigDecimal diemCongTA =
+                                getBigDecimal(row, colMap.colDiemCongTiengAnh);
+
+                        if (diemCongTA == null) {
+                            diemCongTA = BigDecimal.ZERO;
+                        }
+
+                        try (Session session = HibernateUtil
+                                .getSessionFactory()
+                                .openSession()) {
+
+                            Transaction tx = session.beginTransaction();
+
+                            List<XtDiemCongXetTuyen> list =
+                                    session.createQuery(
+                                            "from XtDiemCongXetTuyen "
+                                            + "where tsCccd = :cccd",
+                                            XtDiemCongXetTuyen.class)
+                                    .setParameter("cccd", cccd)
+                                    .list();
+                                    if (list.isEmpty()) {
+
+                                        // =====================================================
+                                        // CCCD chưa có trong bảng điểm cộng
+                                        // -> tự tạo mới theo ngành + tổ hợp của thí sinh
+                                        // =====================================================
+
+                                        List<String> dsMaNganh =
+                                                session.createQuery(
+                                                        "select distinct nv.maNganh "
+                                                        + "from XtNguyenVong nv "
+                                                        + "where nv.tsCccd = :cccd",
+                                                        String.class)
+                                                .setParameter("cccd", cccd)
+                                                .list();
+
+                                        if (dsMaNganh.isEmpty()) {
+
+                                            logWriter.printf(
+                                                    "[ENGLISH] CCCD=%s không tìm thấy ngành/nguyện vọng%n",
+                                                    cccd);
+
+                                            totalSkipError++;
+
+                                            tx.commit();
+
+                                            continue;
+                                        }
+
+                                        for (String maNganh : dsMaNganh) {
+
+                                            List<XtNganhToHop> toHops =
+                                                    nganhToHopMap.get(normalize(maNganh));
+
+                                            if (toHops == null || toHops.isEmpty()) {
+
+                                                logWriter.printf(
+                                                        "[ENGLISH] CCCD=%s | maNganh=%s không có tổ hợp%n",
+                                                        cccd,
+                                                        maNganh);
+
+                                                continue;
+                                            }
+
+                                            for (XtNganhToHop toHop : toHops) {
+
+                                                String maToHop = toHop.getMaToHop();
+
+                                                XtDiemCongXetTuyen entity =
+                                                        new XtDiemCongXetTuyen();
+
+                                                entity.setTsCccd(cccd);
+
+                                                entity.setMaNganh(maNganh);
+
+                                                entity.setMaToHop(maToHop);
+
+                                                entity.setPhuongThuc("THPT");
+
+                                                entity.setDiemCc(diemCongTA);
+
+                                                entity.setDiemUtxt(BigDecimal.ZERO);
+
+                                                entity.setDiemTong(diemCongTA);
+
+                                                entity.setGhiChu(
+                                                        "AUTO CREATED FROM ENGLISH FILE");
+
+                                                entity.setDcKeys("");
+
+                                                session.persist(entity);
+
+                                                logWriter.printf(
+                                                        "[ENGLISH] INSERT CCCD=%s | maNganh=%s | maToHop=%s | diemCC=%s%n",
+                                                        cccd,
+                                                        maNganh,
+                                                        maToHop,
+                                                        diemCongTA);
+                                            }
+                                        }
+
+                                        tx.commit();
+
+                                        totalSuccess++;
+
+                                        continue;
+                                    }
+
+                            for (XtDiemCongXetTuyen entity : list) {
+
+                                entity.setDiemCc(diemCongTA);
+
+                                BigDecimal tong =
+                                        sum(entity.getDiemUtxt(), diemCongTA);
+
+                                entity.setDiemTong(tong);
+
+                                session.merge(entity);
+                            }
+
+                            tx.commit();
+
+                            totalSuccess++;
+
+                            logWriter.printf(
+                                    "[ENGLISH] UPDATE CCCD=%s | diemCC=%s%n",
+                                    cccd,
+                                    diemCongTA);
+
+                        } catch (Exception ex) {
+
+                            logWriter.printf(
+                                    "[ENGLISH] ERROR CCCD=%s | %s%n",
+                                    cccd,
+                                    ex.getMessage());
+
+                            totalSkipError++;
+                        }
+                    }
+
+                    // xử lý xong sheet tiếng Anh thì skip logic cũ
+                    continue;
+                }
                 for (int rowIdx = DATA_START_IDX; rowIdx <= sheet.getLastRowNum(); rowIdx++) {
                     Row row = sheet.getRow(rowIdx);
                     if (isRowEmpty(row))
@@ -209,6 +395,41 @@ public class DiemCongImporter {
                     XtNganh nganh = null;
                     if (tenNganh != null && !tenNganh.isBlank()) {
                         nganh = nganhMap.get(tenNganh);
+
+                        if (nganh == null) {
+
+                            String prefix = tenNganh.length() >= 5
+                                    ? tenNganh.substring(0, 5)
+                                    : tenNganh;
+
+                            List<String> similarList = nganhMap.keySet().stream()
+                                    .filter(k -> k.contains(prefix) || prefix.contains(k))
+                                    .limit(5)
+                                    .collect(Collectors.toList());
+
+                            String errorMsg = String.format(
+                                    "[%s] Dòng %d | CCCD=%s%n" +
+                                    "Tên ngành gốc     = [%s]%n" +
+                                    "Tên ngành chuẩn hóa = [%s]%n" +
+                                    "=> KHÔNG TÌM THẤY NGÀNH TRONG DB%n" +
+                                    "Gợi ý gần giống: %s%n",
+                                    sheetName,
+                                    rowIdx + 1,
+                                    cccd,
+                                    tenNganhOriginal,
+                                    tenNganh,
+                                    similarList.isEmpty() ? "(không có)" : similarList
+                            );
+
+                            logWriter.println(errorMsg);
+
+                            if (errorMessages.size() < 100) {
+                                errorMessages.add(errorMsg);
+                            }
+
+                            totalSkipError++;
+                            continue;
+                        }
 
                     } else if (maMon != null && !maMon.isBlank()) {
                         // Trường hợp chỉ có mã môn, không có tên ngành
@@ -356,7 +577,14 @@ public class DiemCongImporter {
                 }
             } else if (colName.contains("ĐIỂM CỘNG CHO THXT") || colName.contains("DIEM CONG CHO THXT")) {
                 colMap.colDiemThxtKhongMon = colIdx;
-            }
+            } 
+                else if (colName.contains("ĐIỂM CỘNG")
+                        || colName.contains("DIEM CONG")) {
+
+                    colMap.colDiemCongTiengAnh = colIdx;
+                    colMap.isEnglishCertificateFile = true;
+        }
+            
         }
 
         return colMap;
