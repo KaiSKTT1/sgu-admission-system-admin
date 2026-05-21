@@ -13,32 +13,33 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * Tính điểm tổ hợp môn (diem_thxt) cho từng nguyện vọng trong bảng
- * xt_nguyenvongxettuyen, rồi cập nhật lại diem_thxt, diem_utqd, diem_xettuyen.
+ * Tính điểm tổ hợp môn cho từng nguyện vọng trong bảng xt_nguyenvongxettuyen,
+ * rồi cập nhật lại diem_thxt, diem_utqd, diem_cong, diem_xettuyen.
  *
- * ── Luồng xử lý ─────────────────────────────────────────────────────────────
- * 1. Load tất cả nguyện vọng chưa có diem_thxt (= null).
+ * ── Luồng xử lý (theo công thức Bộ GD&ĐT) ──────────────────────────────────
+ * 1. Load tất cả nguyện vọng chưa có diem_thxt (= null), phương thức THPT.
  * 2. Với mỗi nguyện vọng:
- * a. Tra bảng xt_nganh_tohop → lấy th_mon1/hsmon1, th_mon2/hsmon2,
- * th_mon3/hsmon3, N1_FLAG, do_lech theo (manganh + tt_thm).
- * b. Tra bảng xt_thisinhxettuyen25 (hoặc xt_diemthixettuyen) → điểm
- * từng môn của thí sinh theo CCCD.
- * c. Tính:
- * diem_thxt = (d1*hs1 + d2*hs2 + d3*hs3) / (hs1+hs2+hs3) * 3 + do_lech
- * → nhân lại về thang 30 (tổng hệ số = 3 nên *3 = giữ nguyên tổng)
- * → thực chất: diem_thxt = d1*hs1 + d2*hs2 + d3*hs3 + do_lech
- * d. Tra bảng xt_diemcongxetuyen → lấy diemCC (điểm cộng), diemUtxt (ưu tiên
- * xét tuyển).
- * Nếu không có → diem_cong = 0, diem_utqd = 0.
- * e. diem_xettuyen = diem_thxt + diem_utqd + diem_cong / 2
- * (theo quy tắc Bộ GD: ưu tiên đối tượng = utqd, điểm cộng = diem_cong/2)
- * 3. Cập nhật batch vào DB.
+ * a. Tra xt_nganh_tohop (manganh + tt_thm) → hệ số môn, do_lech.
+ * b. Tra xt_diemthixettuyen (cccd) → điểm từng môn.
+ * c. Tính ĐTHXT (điểm tổ hợp xét tuyển):
+ * ĐTHXT = [(d1×w1 + d2×w2 + d3×w3) / W] × 3
+ * trong đó W = w1 + w2 + w3
+ * d. Tính ĐTHGXT (điểm tổ hợp gốc xét tuyển):
+ * ĐTHGXT = ĐTHXT - do_lech
+ * (do_lech = mức chênh lệch của tổ hợp đăng ký so với tổ hợp gốc ngành)
+ * e. Tra xt_diemcongxetuyen → ĐC (điểm cộng), MĐƯT (mức điểm ưu tiên).
+ * f. Tính ĐƯT (điểm ưu tiên) theo điều kiện:
+ * - Nếu (ĐTHGXT + ĐC) < 22.5 : ĐƯT = MĐƯT
+ * - Nếu (ĐTHGXT + ĐC) >= 22.5: ĐƯT = [(30 - ĐTHGXT - ĐC) / 7.5] × MĐƯT
+ * g. ĐXT = ĐTHGXT + ĐC + ĐƯT (tối đa 30 điểm)
+ * 3. Cập nhật batch vào DB:
+ * diem_thxt = ĐTHGXT
+ * diem_utqd = ĐƯT
+ * diem_cong = ĐC
+ * diem_xettuyen = ĐXT
  *
  * ── Ghi chú môn NN ──────────────────────────────────────────────────────────
- * Khi tổ hợp có N1_FLAG=1, điểm NN được lấy ưu tiên:
- * - N1_THI : điểm thi thực tế (xt_diemthixettuyen.N1_THI)
- * - N1_CC : điểm chứng chỉ quốc tế quy đổi (xt_diemthixettuyen.N1_CC)
- * Lấy max(N1_THI, N1_CC) nếu cả hai tồn tại.
+ * Khi tổ hợp có N1_FLAG=1, điểm NN = max(N1_THI, N1_CC).
  */
 public class DiemTohopCalculator {
 
@@ -90,32 +91,41 @@ public class DiemTohopCalculator {
                     continue;
                 }
 
-                // ── Tính điểm tổ hợp ─────────────────────────────────────
-                BigDecimal diemThxt = tinhDiemTohop(tohopInfo, diemThi);
-                if (diemThxt == null) {
+                // ── Bước 1: Tính ĐTHXT = [(d1×w1 + d2×w2 + d3×w3) / W] × 3 ──
+                BigDecimal dthxt = tinhDiemThxt(tohopInfo, diemThi);
+                if (dthxt == null) {
                     System.out.printf("  [SKIP] CCCD=%s | Ngành=%s | Tổ hợp=%s: Thiếu điểm môn%n",
                             nv.getNnCccd(), nv.getNvMaNganh(), nv.getTtThm());
                     skipCount++;
                     continue;
                 }
 
-                // ── Điểm cộng / ưu tiên ──────────────────────────────────
+                // ── Bước 2: Tính ĐTHGXT = ĐTHXT - do_lech ───────────────
+                // do_lech = mức chênh lệch của tổ hợp đăng ký so với tổ hợp gốc ngành
+                BigDecimal doLech = tohopInfo.doLech != null ? tohopInfo.doLech : BigDecimal.ZERO;
+                BigDecimal dthgxt = dthxt.subtract(doLech).setScale(SCALE, RM);
+
+                // ── Bước 3: Điểm cộng ─────────────────────────────────────
                 // Key: cccd|manganh|matohop
                 String dcKey = nv.getNnCccd() + "|" + nv.getNvMaNganh() + "|" + nv.getTtThm();
                 DiemCongInfo dc = diemCongMap.getOrDefault(dcKey, DiemCongInfo.ZERO);
+                BigDecimal mdut = dc.diemUtxt != null ? dc.diemUtxt : BigDecimal.ZERO; // MĐƯT
+                BigDecimal diemCong = dc.diemCC != null ? dc.diemCC : BigDecimal.ZERO; // ĐC
 
-                BigDecimal diemUtqd = dc.diemUtxt != null ? dc.diemUtxt : BigDecimal.ZERO;
-                BigDecimal diemCong = dc.diemCC != null ? dc.diemCC : BigDecimal.ZERO;
+                // ── Bước 4: Tính ĐƯT theo điều kiện 22.5 ────────────────
+                // Nếu (ĐTHGXT + ĐC) < 22.5 : ĐƯT = MĐƯT
+                // Nếu (ĐTHGXT + ĐC) >= 22.5: ĐƯT = [(30 - ĐTHGXT - ĐC) / 7.5] × MĐƯT
+                BigDecimal diemUuTien = tinhDiemUuTien(dthgxt, diemCong, mdut);
 
-                // diem_xettuyen = diem_thxt + diem_utqd + diem_cong/2
-                BigDecimal diemXetTuyen = diemThxt
-                        .add(diemUtqd)
-                        .add(diemCong.divide(BigDecimal.valueOf(2), SCALE, RM))
+                // ── Bước 5: ĐXT = ĐTHGXT + ĐC + ĐƯT (tối đa 30) ────────
+                BigDecimal diemXetTuyen = dthgxt.add(diemCong).add(diemUuTien)
+                        .min(new BigDecimal("30"))
                         .setScale(SCALE, RM);
 
                 // ── Gán vào entity ────────────────────────────────────────
-                nv.setDiemThxt(diemThxt.setScale(SCALE, RM));
-                nv.setDiemUtqd(diemUtqd.setScale(SCALE, RM));
+                // diem_thxt lưu ĐTHGXT (điểm tổ hợp gốc đã quy đổi)
+                nv.setDiemThxt(dthgxt);
+                nv.setDiemUtqd(diemUuTien.setScale(SCALE, RM));
                 nv.setDiemCong(diemCong.setScale(SCALE, RM));
                 nv.setDiemXetTuyen(diemXetTuyen);
 
@@ -142,19 +152,15 @@ public class DiemTohopCalculator {
                 successCount, skipCount, errorCount);
     }
 
-    // ── Tính điểm tổ hợp ────────────────────────────────────────────────────
+    // ── Tính điểm tổ hợp xét tuyển (ĐTHXT) ─────────────────────────────────
 
     /**
-     * Công thức:
-     * diem_thxt = (d_mon1 * hs1) + (d_mon2 * hs2) + (d_mon3 * hs3) + do_lech
+     * ĐTHXT_THPT = [(d1×w1 + d2×w2 + d3×w3) / W] × 3
+     * trong đó W = w1 + w2 + w3
      *
-     * Tổng hệ số thường = 3 nên không cần chia thêm (tương đương thang 30).
-     * Nếu tổ hợp có hệ số khác (ví dụ TO*2 + VA*1 + N1*1 = 4),
-     * ta vẫn tổng thẳng để giữ đúng theo quy định của ngành đó.
-     *
-     * N1: lấy max(N1_THI, N1_CC) — điểm thi thực hoặc chứng chỉ quy đổi.
+     * N1: lấy max(N1_THI, N1_CC).
      */
-    private static BigDecimal tinhDiemTohop(NganhTohopInfo tohop, DiemThiInfo diemThi) {
+    private static BigDecimal tinhDiemThxt(NganhTohopInfo tohop, DiemThiInfo diemThi) {
         BigDecimal d1 = getMonScore(tohop.thMon1, tohop.n1Flag, diemThi);
         BigDecimal d2 = getMonScore(tohop.thMon2, tohop.n1Flag, diemThi);
         BigDecimal d3 = getMonScore(tohop.thMon3, tohop.n1Flag, diemThi);
@@ -162,19 +168,50 @@ public class DiemTohopCalculator {
         if (d1 == null || d2 == null || d3 == null)
             return null;
 
-        BigDecimal hs1 = BigDecimal.valueOf(tohop.hsMon1);
-        BigDecimal hs2 = BigDecimal.valueOf(tohop.hsMon2);
-        BigDecimal hs3 = BigDecimal.valueOf(tohop.hsMon3);
+        BigDecimal w1 = BigDecimal.valueOf(tohop.hsMon1);
+        BigDecimal w2 = BigDecimal.valueOf(tohop.hsMon2);
+        BigDecimal w3 = BigDecimal.valueOf(tohop.hsMon3);
+        BigDecimal W = w1.add(w2).add(w3);
 
-        BigDecimal diem = d1.multiply(hs1)
-                .add(d2.multiply(hs2))
-                .add(d3.multiply(hs3));
+        if (W.compareTo(BigDecimal.ZERO) == 0)
+            return null;
 
-        if (tohop.doLech != null) {
-            diem = diem.add(tohop.doLech);
+        // [(d1×w1 + d2×w2 + d3×w3) / W] × 3
+        BigDecimal tong = d1.multiply(w1).add(d2.multiply(w2)).add(d3.multiply(w3));
+        return tong.divide(W, 10, RM).multiply(BigDecimal.valueOf(3)).setScale(SCALE, RM);
+    }
+
+    // ── Tính điểm ưu tiên (ĐƯT) ─────────────────────────────────────────────
+
+    /**
+     * Theo quy định Bộ GD&ĐT:
+     * - Nếu (ĐTHGXT + ĐC) < 22.5 : ĐƯT = MĐƯT
+     * - Nếu (ĐTHGXT + ĐC) >= 22.5 : ĐƯT = [(30 - ĐTHGXT - ĐC) / 7.5] × MĐƯT
+     *
+     * @param dthgxt điểm tổ hợp gốc xét tuyển
+     * @param dc     điểm cộng
+     * @param mdut   mức điểm ưu tiên (từ bảng khu vực + đối tượng)
+     */
+    private static BigDecimal tinhDiemUuTien(BigDecimal dthgxt, BigDecimal dc, BigDecimal mdut) {
+        if (mdut == null || mdut.compareTo(BigDecimal.ZERO) == 0)
+            return BigDecimal.ZERO;
+
+        BigDecimal tongCoSo = dthgxt.add(dc);
+        BigDecimal nguong = new BigDecimal("22.5");
+
+        if (tongCoSo.compareTo(nguong) < 0) {
+            // Dưới 22.5: hưởng toàn bộ ưu tiên
+            return mdut.setScale(SCALE, RM);
+        } else {
+            // Từ 22.5 trở lên: giảm dần theo công thức
+            // ĐƯT = [(30 - ĐTHGXT - ĐC) / 7.5] × MĐƯT
+            BigDecimal phanCon = new BigDecimal("30").subtract(tongCoSo);
+            if (phanCon.compareTo(BigDecimal.ZERO) <= 0)
+                return BigDecimal.ZERO;
+            return phanCon.divide(new BigDecimal("7.5"), 10, RM)
+                    .multiply(mdut)
+                    .setScale(SCALE, RM);
         }
-
-        return diem.setScale(SCALE, RM);
     }
 
     /**
