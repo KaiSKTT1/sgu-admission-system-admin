@@ -24,10 +24,12 @@ import com.example.KaiST.sgu_admission_system.gui.views.DiemXetTuyenView;
 import com.example.KaiST.sgu_admission_system.utils.ExcelUtils;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 
 public class DiemXetTuyenController {
     private final DiemXetTuyenView view;
@@ -37,6 +39,8 @@ public class DiemXetTuyenController {
     private List<NguyenVongXetTuyenRow> filteredRows = new ArrayList<>();
     private int currentPage = 1;
     private XetTuyenBus.XetTuyenResult lastResult;
+    private Runnable onXetTuyenComplete;
+    private Set<String> admittedKeys = Set.of();
     private final XtToHopMonThiBus toHopMonThiBus = new XtToHopMonThiBus();
     private final XtDiemThiXetTuyenBus diemThiXetTuyenBus = new XtDiemThiXetTuyenBus();
     private final Map<String, XtToHopMonThi> toHopCache = new HashMap<>();
@@ -127,6 +131,10 @@ public class DiemXetTuyenController {
         onRefresh();
     }
 
+    public void setOnXetTuyenComplete(Runnable onXetTuyenComplete) {
+        this.onXetTuyenComplete = onXetTuyenComplete;
+    }
+
     private void preloadToHop() {
         toHopCache.clear();
         for (XtToHopMonThi th : toHopMonThiBus.findAll()) {
@@ -180,7 +188,17 @@ public class DiemXetTuyenController {
         preloadNganhGoc();
         preloadDiemCong();
         allRows = nguyenVongBus.findAllWithThiSinhInfo();
+        refreshAdmittedKeys();
         onSearch();
+    }
+
+    private void refreshAdmittedKeys() {
+        try {
+            bus.selectAdmittedByQuota("");
+            admittedKeys = bus.buildAdmittedKeySet();
+        } catch (Exception ex) {
+            admittedKeys = new HashSet<>();
+        }
     }
 
     public void onSearch() {
@@ -205,10 +223,19 @@ public class DiemXetTuyenController {
     }
 
     public void onRunXetTuyen() {
-        List<DiemXetTuyenRow> diemRows = bus.buildDiemXetTuyenRows();
-        lastResult = bus.runXetTuyen(diemRows);
-        int total = lastResult.getChiTiet().size();
-        view.showInfo("Đã xét tuyển: " + total + " thí sinh trúng tuyển.");
+        try {
+            List<DiemXetTuyenRow> diemRows = bus.buildDiemXetTuyenRows();
+            lastResult = bus.runXetTuyen(diemRows);
+            int admitted = bus.selectAdmittedByQuota("").size();
+            admittedKeys = bus.buildAdmittedKeySet();
+            onSearch();
+            if (onXetTuyenComplete != null) {
+                onXetTuyenComplete.run();
+            }
+            view.showInfo("Đã xét tuyển: " + admitted + " thí sinh trúng tuyển (đã cập nhật panel Xét tuyển).");
+        } catch (Exception ex) {
+            view.showError("Không thể xét tuyển: " + ex.getMessage());
+        }
     }
 
     public void onExport() {
@@ -468,6 +495,8 @@ public class DiemXetTuyenController {
                 finalDiemXetTuyen = record.getDiemXetTuyen();
             }
 
+            String ketQua = isAdmitted(record) ? "Đậu" : "Rớt";
+
             rows.add(new Object[] {
                     stt,
                     safeText(record.getNnCccd()),
@@ -480,13 +509,23 @@ public class DiemXetTuyenController {
                     cong != null ? cong : "",
                     ut != null ? ut : "",
                     finalDiemXetTuyen != null ? finalDiemXetTuyen : "",
-                    safeText(record.getNvKetQua()),
+                    ketQua,
                     safeText(record.getNvKeys())
             });
         }
 
         view.setTableRows(rows);
         view.updatePagination(currentPage, totalPages);
+    }
+
+    private boolean isAdmitted(NguyenVongXetTuyenRow record) {
+        return admittedKeys.contains(buildAdmittedKey(record));
+    }
+
+    private String buildAdmittedKey(NguyenVongXetTuyenRow record) {
+        PhuongThuc method = PhuongThuc.fromText(record.getTtPhuongThuc());
+        String phuongThuc = method != null ? method.getLabel() : record.getTtPhuongThuc();
+        return XetTuyenBus.buildAdmittedRowKey(record.getNnCccd(), record.getNvMaNganh(), phuongThuc);
     }
 
     private boolean containsKeyword(NguyenVongXetTuyenRow row, String keyword) {

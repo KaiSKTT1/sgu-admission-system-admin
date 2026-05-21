@@ -110,9 +110,6 @@ public class ContentPanel extends JPanel {
                                 new XtNganhToHopBus());
                 DiemXetTuyenController diemXetController = new DiemXetTuyenController(diemXetView, xetTuyenBus,
                                 nguyenVongBus);
-                diemXetView.setController(diemXetController);
-                diemXetController.init();
-                add(diemXetView, VIEW_DIEMXET);
 
                 // ── Xét tuyển ────────────────────────────────────────────
                 XetTuyenView xetTuyenView = new XetTuyenView();
@@ -121,6 +118,11 @@ public class ContentPanel extends JPanel {
                 xetTuyenView.setController(xetTuyenController);
                 xetTuyenController.init();
                 add(xetTuyenView, VIEW_XETTUYEN);
+
+                diemXetController.setOnXetTuyenComplete(xetTuyenController::loadFromLastResult);
+                diemXetView.setController(diemXetController);
+                diemXetController.init();
+                add(diemXetView, VIEW_DIEMXET);
 
                 // ── User ─────────────────────────────────────────────────
                 UserView userView = new UserView();

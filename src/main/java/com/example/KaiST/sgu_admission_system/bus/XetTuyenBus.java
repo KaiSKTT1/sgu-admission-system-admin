@@ -3,6 +3,7 @@ package com.example.KaiST.sgu_admission_system.bus;
 import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.dto.DiemXetTuyenRow;
 import com.example.KaiST.sgu_admission_system.dto.KetQuaTrungTuyenRow;
+import com.example.KaiST.sgu_admission_system.dto.NganhXetTuyenConfig;
 import com.example.KaiST.sgu_admission_system.dto.ThongKeNganhRow;
 import com.example.KaiST.sgu_admission_system.dto.XetTuyenAdmittedRow;
 import com.example.KaiST.sgu_admission_system.entity.XtBangQuyDoi;
@@ -32,6 +33,7 @@ public class XetTuyenBus {
     private final XtBangQuyDoiBus bangQuyDoiBus;
     private final XtNganhBus nganhBus;
     private final XtNganhToHopBus nganhToHopBus;
+    private List<XetTuyenAdmittedRow> lastAdmittedRows = List.of();
 
     public XetTuyenBus(XtThiSinhXetTuyen25Bus thiSinhBus,
             XtNguyenVongXetTuyenBus nguyenVongBus,
@@ -170,139 +172,132 @@ public class XetTuyenBus {
     }
 
     /**
-     * Xét tuyển theo nguyện vọng đã lưu: dùng {@code diem_xettuyen} và {@code tt_phuongthuc}
-     * từ {@code xt_nguyenvongxettuyen}, chỉ tiêu theo phương thức ({@code sl_thpt},
-     * {@code sl_dgnl}, {@code sl_vsat}) và điểm sàn {@code n_diemsan} của ngành.
+     * Đọc cấu hình ngành từ panel Ngành: mã ngành, chỉ tiêu ({@code n_chitieu}),
+     * điểm sàn ({@code n_diemsan}).
      */
-    public List<XetTuyenAdmittedRow> selectAdmittedByQuota(String selectedMaNganh) {
-        Map<String, XtNganh> nganhByMa = new HashMap<>();
-        for (XtNganh item : nganhBus.findAll()) {
-            if (item != null && item.getMaNganh() != null) {
-                nganhByMa.put(normalize(item.getMaNganh()), item);
-            }
-        }
-
-        Map<String, String> hoTenByCccd = new HashMap<>();
-        for (XtThiSinhXetTuyen25 thiSinh : thiSinhBus.findAll()) {
-            if (thiSinh != null && thiSinh.getCccd() != null) {
-                hoTenByCccd.put(normalize(thiSinh.getCccd()), thiSinh.getTen());
-            }
-        }
-
-        String nganhFilter = normalize(selectedMaNganh);
-
-        Map<String, List<XtNguyenVongXetTuyen>> byNganh = new HashMap<>();
-        for (XtNguyenVongXetTuyen nv : nguyenVongBus.findAll()) {
-            if (nv == null || nv.getNvMaNganh() == null || nv.getDiemXetTuyen() == null) {
+    public Map<String, NganhXetTuyenConfig> buildNganhConfigMap() {
+        Map<String, NganhXetTuyenConfig> configByMa = new HashMap<>();
+        for (XtNganh nganh : nganhBus.findAll()) {
+            if (nganh == null || nganh.getMaNganh() == null || nganh.getMaNganh().isBlank()) {
                 continue;
             }
-            String maNganh = normalize(nv.getNvMaNganh());
+            String key = normalize(nganh.getMaNganh());
+            configByMa.put(key, new NganhXetTuyenConfig(
+                    nganh.getMaNganh().trim(),
+                    nganh.getChiTieu(),
+                    nganh.getDiemSan()));
+        }
+        return configByMa;
+    }
+
+    /**
+     * Lọc thí sinh từ dữ liệu điểm xét tuyển: điểm xét tuyển &gt;= điểm sàn,
+     * lấy tối đa chỉ tiêu theo từng mã ngành.
+     */
+    public List<XetTuyenAdmittedRow> selectAdmittedByNganhConfig(
+            Map<String, NganhXetTuyenConfig> configByMa,
+            List<DiemXetTuyenRow> diemRows,
+            String selectedMaNganh) {
+        String nganhFilter = normalize(selectedMaNganh);
+        Map<String, List<DiemXetTuyenRow>> byNganh = new HashMap<>();
+
+        for (DiemXetTuyenRow row : diemRows) {
+            if (row == null || row.getMaNganh() == null || row.getDiemXetTuyen() == null) {
+                continue;
+            }
+            String maNganh = normalize(row.getMaNganh());
             if (!nganhFilter.isEmpty() && !maNganh.equals(nganhFilter)) {
                 continue;
             }
-            byNganh.computeIfAbsent(maNganh, ignored -> new ArrayList<>()).add(nv);
+            byNganh.computeIfAbsent(maNganh, ignored -> new ArrayList<>()).add(row);
         }
 
         List<XetTuyenAdmittedRow> result = new ArrayList<>();
-        for (Map.Entry<String, List<XtNguyenVongXetTuyen>> entry : byNganh.entrySet()) {
-            String maNganh = entry.getKey();
-            XtNganh nganh = nganhByMa.get(maNganh);
-            if (nganh == null) {
+        for (Map.Entry<String, List<DiemXetTuyenRow>> entry : byNganh.entrySet()) {
+            String maNganhKey = entry.getKey();
+            NganhXetTuyenConfig config = configByMa.get(maNganhKey);
+            if (config == null) {
                 continue;
             }
-            BigDecimal diemSan = nganh.getDiemSan();
 
-            for (PhuongThuc method : PhuongThuc.values()) {
-                if (!isMethodEnabled(nganh, method)) {
+            Integer chiTieu = config.getChiTieu();
+            if (chiTieu == null || chiTieu <= 0) {
+                continue;
+            }
+            BigDecimal diemSan = config.getDiemSan();
+
+            Map<String, DiemXetTuyenRow> bestByCccd = new HashMap<>();
+            for (DiemXetTuyenRow row : entry.getValue()) {
+                if (diemSan != null && row.getDiemXetTuyen().compareTo(diemSan) < 0) {
                     continue;
                 }
-                Integer quota = getQuota(nganh, method);
-                if (quota == null || quota <= 0) {
-                    continue;
+                String cccdKey = normalize(row.getCccd());
+                DiemXetTuyenRow existing = bestByCccd.get(cccdKey);
+                if (existing == null || compareDesc(row.getDiemXetTuyen(), existing.getDiemXetTuyen()) < 0) {
+                    bestByCccd.put(cccdKey, row);
                 }
+            }
 
-                List<XtNguyenVongXetTuyen> candidates = new ArrayList<>();
-                for (XtNguyenVongXetTuyen nv : entry.getValue()) {
-                    PhuongThuc nvMethod = PhuongThuc.fromText(nv.getTtPhuongThuc());
-                    if (nvMethod != method) {
-                        continue;
-                    }
-                    if (diemSan != null && nv.getDiemXetTuyen().compareTo(diemSan) < 0) {
-                        continue;
-                    }
-                    candidates.add(nv);
-                }
+            List<DiemXetTuyenRow> candidates = new ArrayList<>(bestByCccd.values());
+            candidates.sort((a, b) -> compareDesc(a.getDiemXetTuyen(), b.getDiemXetTuyen()));
 
-                candidates.sort((a, b) -> compareDesc(a.getDiemXetTuyen(), b.getDiemXetTuyen()));
-                int count = Math.min(quota, candidates.size());
-                for (int i = 0; i < count; i++) {
-                    XtNguyenVongXetTuyen nv = candidates.get(i);
-                    String cccd = nv.getNnCccd();
-                    result.add(new XetTuyenAdmittedRow(
-                            cccd,
-                            hoTenByCccd.getOrDefault(normalize(cccd), ""),
-                            nv.getNvMaNganh(),
-                            method.getLabel(),
-                            nv.getDiemXetTuyen(),
-                            quota,
-                            diemSan));
-                }
+            int count = Math.min(chiTieu, candidates.size());
+            for (int i = 0; i < count; i++) {
+                DiemXetTuyenRow row = candidates.get(i);
+                String phuongThuc = row.getPhuongThuc() == null ? "" : row.getPhuongThuc().getLabel();
+                result.add(new XetTuyenAdmittedRow(
+                        row.getCccd(),
+                        row.getHoTen(),
+                        row.getMaNganh(),
+                        phuongThuc,
+                        row.getDiemXetTuyen(),
+                        chiTieu,
+                        diemSan));
             }
         }
 
         result.sort((a, b) -> compareDesc(a.getDiemXetTuyen(), b.getDiemXetTuyen()));
+        lastAdmittedRows = result;
         return result;
     }
 
-    private boolean isMethodEnabled(XtNganh nganh, PhuongThuc method) {
-        if (nganh == null || method == null) {
-            return false;
-        }
-        String value;
-        switch (method) {
-            case THPT:
-                value = nganh.getThpt();
-                break;
-            case DGNL:
-                value = nganh.getDgnl();
-                break;
-            case VSAT:
-                value = nganh.getVsat();
-                break;
-            default:
-                return false;
-        }
-        if (value == null || value.isEmpty()) {
-            return false;
-        }
-        return !"0".equals(value);
+    /**
+     * Xét tuyển: dùng cấu hình ngành (chỉ tiêu, điểm sàn) và điểm xét tuyển từ panel Điểm xét tuyển.
+     */
+    public List<XetTuyenAdmittedRow> selectAdmittedByQuota(String selectedMaNganh) {
+        Map<String, NganhXetTuyenConfig> configByMa = buildNganhConfigMap();
+        List<DiemXetTuyenRow> diemRows = buildDiemXetTuyenRows();
+        return selectAdmittedByNganhConfig(configByMa, diemRows, selectedMaNganh);
     }
 
-    private Integer getQuota(XtNganh nganh, PhuongThuc method) {
-        if (nganh == null || method == null) {
-            return null;
-        }
-        switch (method) {
-            case THPT:
-                return parseInteger(nganh.getSlThpt());
-            case DGNL:
-                return nganh.getSlDgnl();
-            case VSAT:
-                return nganh.getSlVsat();
-            default:
-                return null;
-        }
+    public List<XetTuyenAdmittedRow> getLastAdmittedRows() {
+        return lastAdmittedRows;
     }
 
-    private Integer parseInteger(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
+    /** Khóa nhận diện thí sinh trúng tuyển: CCCD|MÃ_NGÀNH|PHƯƠNG_THỨC. */
+    public static String buildAdmittedRowKey(String cccd, String maNganh, String phuongThuc) {
+        return normalizeStatic(cccd) + "|" + normalizeStatic(maNganh) + "|"
+                + normalizePhuongThucLabel(phuongThuc);
+    }
+
+    public Set<String> buildAdmittedKeySet() {
+        Set<String> keys = new HashSet<>();
+        for (XetTuyenAdmittedRow row : lastAdmittedRows) {
+            keys.add(buildAdmittedRowKey(row.getCccd(), row.getMaNganh(), row.getPhuongThuc()));
         }
-        try {
-            return Integer.valueOf(value.trim());
-        } catch (NumberFormatException ex) {
-            return null;
+        return keys;
+    }
+
+    private static String normalizePhuongThucLabel(String value) {
+        PhuongThuc method = PhuongThuc.fromText(value);
+        if (method != null) {
+            return method.getLabel();
         }
+        return normalizeStatic(value);
+    }
+
+    private static String normalizeStatic(String value) {
+        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
     }
 
     public XetTuyenResult runXetTuyen(List<DiemXetTuyenRow> rows) {

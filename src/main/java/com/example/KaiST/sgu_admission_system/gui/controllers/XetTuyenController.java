@@ -2,6 +2,7 @@ package com.example.KaiST.sgu_admission_system.gui.controllers;
 
 import com.example.KaiST.sgu_admission_system.bus.XtNganhBus;
 import com.example.KaiST.sgu_admission_system.bus.XetTuyenBus;
+import com.example.KaiST.sgu_admission_system.commen.PhuongThuc;
 import com.example.KaiST.sgu_admission_system.dto.XetTuyenAdmittedRow;
 import com.example.KaiST.sgu_admission_system.entity.XtNganh;
 import com.example.KaiST.sgu_admission_system.gui.views.XetTuyenView;
@@ -33,7 +34,7 @@ public class XetTuyenController {
             String selectedMaNganh = normalize(view.getSelectedMaNganh());
             allRows = xetTuyenBus.selectAdmittedByQuota(selectedMaNganh);
             onSearch();
-            view.showInfo("Đã xét tuyển " + allRows.size() + " thí sinh.");
+            view.showInfo("Đã xét tuyển " + allRows.size() + " thí sinh (theo chỉ tiêu và điểm sàn từng ngành).");
         } catch (Exception ex) {
             view.showError("Không thể thực hiện xét tuyển: " + ex.getMessage());
         }
@@ -43,17 +44,38 @@ public class XetTuyenController {
         onRefresh();
     }
 
-    public void onSearch() {
-        String keyword = view.getSearchKeyword().trim().toLowerCase(Locale.ROOT);
-        if (keyword.isEmpty()) {
-            filteredRows = new ArrayList<>(allRows);
-        } else {
-            filteredRows = new ArrayList<>();
+    /** Cập nhật bảng từ kết quả xét tuyển vừa chạy ở panel Điểm xét tuyển. */
+    public void loadFromLastResult() {
+        allRows = new ArrayList<>(xetTuyenBus.getLastAdmittedRows());
+        String selectedMaNganh = normalize(view.getSelectedMaNganh());
+        if (!selectedMaNganh.isEmpty()) {
+            List<XetTuyenAdmittedRow> filtered = new ArrayList<>();
             for (XetTuyenAdmittedRow row : allRows) {
-                if (containsKeyword(row, keyword)) {
-                    filteredRows.add(row);
+                if (selectedMaNganh.equals(normalize(row.getMaNganh()))) {
+                    filtered.add(row);
                 }
             }
+            allRows = filtered;
+        }
+        onSearch();
+    }
+
+    public void onFilterChange() {
+        onSearch();
+    }
+
+    public void onSearch() {
+        String keyword = view.getSearchKeyword().trim().toLowerCase(Locale.ROOT);
+        String phuongThucFilter = normalizePhuongThuc(view.getSelectedPhuongThuc());
+        filteredRows = new ArrayList<>();
+        for (XetTuyenAdmittedRow row : allRows) {
+            if (!keyword.isEmpty() && !containsKeyword(row, keyword)) {
+                continue;
+            }
+            if (!phuongThucFilter.isEmpty() && !phuongThucFilter.equals(normalizePhuongThuc(row.getPhuongThuc()))) {
+                continue;
+            }
+            filteredRows.add(row);
         }
         currentPage = 1;
         updateTable();
@@ -118,5 +140,13 @@ public class XetTuyenController {
 
     private String normalize(String value) {
         return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizePhuongThuc(String value) {
+        PhuongThuc method = PhuongThuc.fromText(value);
+        if (method != null) {
+            return method.getLabel();
+        }
+        return normalize(value);
     }
 }
