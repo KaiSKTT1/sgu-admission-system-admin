@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 public class XetTuyenBus {
@@ -71,10 +70,14 @@ public class XetTuyenBus {
             diemThiByCccd.computeIfAbsent(key, ignored -> new ArrayList<>()).add(score);
         }
 
-        Map<String, List<XtDiemCongXetTuyen>> diemCongByCccd = new HashMap<>();
+        Map<String, BigDecimal> diemTongByCccdThm = new HashMap<>();
         for (XtDiemCongXetTuyen record : diemCong) {
-            String key = normalize(record.getTsCccd());
-            diemCongByCccd.computeIfAbsent(key, ignored -> new ArrayList<>()).add(record);
+            if (record.getTsCccd() == null || record.getMaToHop() == null || record.getDiemTong() == null) {
+                continue;
+            }
+            diemTongByCccdThm.put(
+                    XtDiemCongXetTuyenBus.buildLookupKey(record.getTsCccd(), record.getMaToHop()),
+                    record.getDiemTong());
         }
 
         Map<String, XtNganh> nganhByMa = new HashMap<>();
@@ -125,8 +128,8 @@ public class XetTuyenBus {
 
             XtDiemThiXetTuyen score = findScore(diemThiByCccd.get(cccd), method);
 
-            BigDecimal diemCongValue = findDiemCong(diemCongByCccd.get(cccd), nv.getNvMaNganh(),
-                    method, toHopCode);
+            BigDecimal diemCongValue = diemTongByCccdThm.get(
+                    XtDiemCongXetTuyenBus.buildLookupKey(cccd, toHopCode));
             BigDecimal diemUuTien = nv.getDiemUtqd();
 
             BigDecimal diemThm = null;
@@ -557,29 +560,6 @@ public class XetTuyenBus {
         }
         BigDecimal y = c.add(x.subtract(a).multiply(d.subtract(c)).divide(denom, 6, RoundingMode.HALF_UP));
         return y.setScale(3, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal findDiemCong(List<XtDiemCongXetTuyen> list, String maNganh, PhuongThuc method,
-            String maToHop) {
-        if (list == null) {
-            return null;
-        }
-        String nganhKey = normalize(maNganh);
-        String toHopKey = normalize(maToHop);
-        for (XtDiemCongXetTuyen record : list) {
-            if (!Objects.equals(normalize(record.getMaNganh()), nganhKey)) {
-                continue;
-            }
-            if (!toHopKey.isBlank() && !Objects.equals(normalize(record.getMaToHop()), toHopKey)) {
-                continue;
-            }
-            PhuongThuc recordMethod = PhuongThuc.fromText(record.getPhuongThuc());
-            if (method != null && recordMethod != null && recordMethod != method) {
-                continue;
-            }
-            return record.getDiemTong();
-        }
-        return null;
     }
 
     private BigDecimal sum(BigDecimal... values) {
